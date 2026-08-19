@@ -2,13 +2,19 @@
   <div class="page-container luopan-page">
     <h1>{{ display('羅盤', false) }}</h1>
     <p class="lead">
-      {{ display('簡易盤·八卦廿四山。紅標為當前朝向，N 隨子山指向磁北。', false) }}
+      {{
+        display(
+          '研習地盤·廿四山陰陽、後天先天對照、洛書九數。紅標為當前朝向，N 隨子山指向磁北。可撥盤。',
+          false,
+        )
+      }}
     </p>
-    <LuopanDisk :heading="heading" />
+    <LuopanDisk :heading="heading" @dragstart="handleDragStart" @drag="handleDrag" />
     <div class="readout">
       <strong>{{ headingText }}°</strong>
       <span>{{ display(current.dir, false) }}</span>
-      <span>{{ display(`${current.name}山 · ${current.gua}卦`, false) }}</span>
+      <span>{{ display(mainLine, false) }}</span>
+      <span class="sub">{{ display(guaLine, false) }}</span>
     </div>
     <div class="actions">
       <button
@@ -19,12 +25,22 @@
       >
         {{ display(live ? '指南針已開啟' : '開啟指南針', false) }}
       </button>
+      <button v-if="paused && supported" type="button" class="start" @click="handleFollow">
+        {{ display('跟隨指南針', false) }}
+      </button>
     </div>
-    <p v-if="denied" class="warn">{{ display('未獲得方向感應權限，可在系統設定中允許。', false) }}</p>
-    <p v-if="!supported" class="hint">{{ display('此裝置沒有方向感應器，盤面固定子山朝上，可作廿四山對照。', false) }}</p>
-    <p v-else-if="!live" class="hint">{{ display('手機請開啟指南針；電腦無磁感應，盤面僅供廿四山對照。', false) }}</p>
+    <p v-if="denied" class="warn">{{ display('未獲得方向感應權限，可在系統設定中允許，亦可撥盤對照。', false) }}</p>
+    <p v-if="!supported" class="hint">{{ display('此裝置沒有方向感應器，可撥盤子山對照。', false) }}</p>
+    <p v-else-if="!live && !paused" class="hint">
+      {{ display('手機請開啟指南針；電腦無磁感應，可撥盤作廿四山對照。', false) }}
+    </p>
     <p class="hint">
-      {{ display('電子羅盤受磁場干擾，不能替代實物羅盤實測。本頁不作風水斷事。', false) }}
+      {{
+        display(
+          '電子羅盤受磁場干擾，不能替代實物羅盤實測。陰陽取三合地盤常例，先天後天僅方位對照。本頁不作風水斷事。',
+          false,
+        )
+      }}
     </p>
   </div>
 </template>
@@ -35,7 +51,7 @@ import LuopanDisk from './components/LuopanDisk.vue';
 import { useCompassHeading } from '@/composables/useCompassHeading';
 import { useDisplayText } from '@/composables/useDisplayText';
 import { useDevice } from '@/composables/useDevice';
-import { mountainAt } from '@/utils/luopan';
+import { houTianAt, LUOSHU_HAN, mountainAt, xianTianAt } from '@/utils/luopan';
 
 export default defineComponent({
   name: 'LuopanPage',
@@ -43,12 +59,41 @@ export default defineComponent({
   setup() {
     const { display } = useDisplayText();
     const { isMobile } = useDevice();
-    const { heading, live, needsPermission, denied, supported, requestStart } = useCompassHeading();
+    const {
+      heading,
+      live,
+      paused,
+      needsPermission,
+      denied,
+      supported,
+      requestStart,
+      pause,
+      resume,
+      setHeading,
+    } = useCompassHeading();
     const current = computed(() => mountainAt(heading.value));
+    const hou = computed(() => houTianAt(heading.value));
+    const xian = computed(() => xianTianAt(heading.value));
     const headingText = computed(() => heading.value.toFixed(0).padStart(3, '0'));
+    const mainLine = computed(() => {
+      const m = current.value;
+      const yinYang = m.yinYang === 'yang' ? '陽山' : '陰山';
+      return `${m.name}山 · ${yinYang} · ${hou.value.name}卦 · 洛書${LUOSHU_HAN[hou.value.luoshu]}`;
+    });
+    const guaLine = computed(() => `後天${hou.value.name} · 先天${xian.value.name}`);
     const _methods = {
-      /** 申请方向感应并开始转动盘面 */
       handleStart() {
+        resume();
+        void requestStart();
+      },
+      handleDragStart() {
+        pause();
+      },
+      handleDrag(deg: number) {
+        setHeading(deg);
+      },
+      handleFollow() {
+        resume();
         void requestStart();
       },
     };
@@ -56,12 +101,15 @@ export default defineComponent({
       display,
       heading,
       live,
+      paused,
       needsPermission,
       denied,
       supported,
       isMobile,
       current,
       headingText,
+      mainLine,
+      guaLine,
       ..._methods,
     };
   },
@@ -102,6 +150,11 @@ h1 {
   letter-spacing: 0.08em;
   font-variant-numeric: tabular-nums;
 }
+.readout .sub {
+  font-size: 13px;
+  color: var(--zw-gold);
+  letter-spacing: 0.12em;
+}
 .start {
   border: 1px solid var(--zw-gold);
   background: color-mix(in srgb, var(--zw-paper) 70%, var(--zw-gold));
@@ -113,6 +166,10 @@ h1 {
   cursor: pointer;
 }
 .actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
   margin-bottom: 12px;
 }
 </style>

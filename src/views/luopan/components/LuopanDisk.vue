@@ -1,60 +1,101 @@
 <template>
-  <div class="disk" role="img" :aria-label="display('廿四山羅盤', false)">
-    <svg class="plate" viewBox="0 0 400 400" :style="{ transform: `rotate(${-heading}deg)` }">
-      <circle cx="200" cy="200" r="198" fill="var(--zw-paper)" stroke="var(--zw-gold)" />
-      <circle cx="200" cy="200" r="168" fill="none" stroke="var(--zw-line)" />
-      <circle cx="200" cy="200" r="128" fill="none" stroke="var(--zw-gold)" />
-      <circle cx="200" cy="200" r="92" fill="none" stroke="var(--zw-line)" />
+  <div
+    ref="rootRef"
+    class="disk"
+    role="img"
+    :aria-label="display('研習地盤羅盤', false)"
+    @pointerdown="onPointerDown"
+    @pointermove="onPointerMove"
+    @pointerup="onPointerUp"
+    @pointercancel="onPointerUp"
+  >
+    <svg class="plate" viewBox="0 0 480 480" :style="{ transform: `rotate(${-heading}deg)` }">
+      <circle cx="240" cy="240" r="238" fill="var(--zw-paper)" stroke="var(--zw-gold)" />
+      <circle cx="240" cy="240" r="192" fill="none" stroke="var(--zw-line)" />
+      <circle cx="240" cy="240" r="168" fill="none" stroke="var(--zw-gold)" />
+      <circle cx="240" cy="240" r="124" fill="none" stroke="var(--zw-line)" />
+      <circle cx="240" cy="240" r="70" fill="none" stroke="var(--zw-gold)" />
       <g v-for="tick in 72" :key="tick">
         <line
-          :x1="200"
-          :y1="tick % 6 === 0 ? 8 : 14"
-          :x2="200"
-          :y2="tick % 2 === 0 ? 22 : 18"
+          :x1="240"
+          :y1="tickLen(tick).y1"
+          :x2="240"
+          :y2="tickLen(tick).y2"
           stroke="var(--zw-ink)"
-          :stroke-width="tick % 6 === 0 ? 1.4 : 0.7"
-          :transform="`rotate(${tick * 5} 200 200)`"
+          :stroke-width="tick % 18 === 0 ? 1.5 : tick % 3 === 0 ? 1.1 : 0.6"
+          :transform="`rotate(${tick * 5} 240 240)`"
         />
       </g>
       <text
         v-for="deg in [0, 90, 180, 270]"
         :key="`d-${deg}`"
-        x="200"
-        y="34"
+        x="240"
+        y="38"
         text-anchor="middle"
         fill="var(--zw-muted)"
         font-size="11"
-        :transform="`rotate(${deg} 200 200)`"
+        :transform="`rotate(${deg} 240 240)`"
       >
         {{ deg }}
       </text>
-      <g v-for="item in mountains" :key="item.name">
-        <text
-          x="200"
-          y="58"
-          text-anchor="middle"
-          :fill="item.deg % 90 === 0 ? '#b42318' : 'var(--zw-ink)'"
-          font-size="15"
-          font-weight="600"
-          :transform="`rotate(${item.deg} 200 200)`"
-        >
+      <text
+        v-for="item in mountains"
+        :key="item.name"
+        x="240"
+        y="58"
+        text-anchor="middle"
+        :fill="item.yinYang === 'yang' ? '#b42318' : 'var(--zw-ink)'"
+        :font-size="item.deg % 90 === 0 ? 16 : 13"
+        :font-weight="item.deg % 90 === 0 ? 700 : 600"
+        :transform="`rotate(${item.deg} 240 240)`"
+      >
+        {{ display(item.name, false) }}
+      </text>
+      <g v-for="item in houTian" :key="`h-${item.name}`" :transform="`rotate(${item.deg} 240 240)`">
+        <text x="240" y="86" text-anchor="middle" fill="var(--zw-primary)" font-size="12" font-weight="600">
           {{ display(item.name, false) }}
         </text>
+        <g v-for="(yao, idx) in yaoDrawn(item.yaos)" :key="idx">
+          <rect v-if="yao === 1" x="229" :y="94 + idx * 8" width="22" height="5" fill="var(--zw-primary)" />
+          <template v-else>
+            <rect x="229" :y="94 + idx * 8" width="9" height="5" fill="var(--zw-primary)" />
+            <rect x="242" :y="94 + idx * 8" width="9" height="5" fill="var(--zw-primary)" />
+          </template>
+        </g>
       </g>
-      <g v-for="item in bagua" :key="item.name">
-        <text
-          x="200"
-          y="108"
-          text-anchor="middle"
-          fill="var(--zw-primary)"
-          font-size="13"
-          :transform="`rotate(${item.deg} 200 200)`"
-        >
+      <g v-for="item in xianTian" :key="`x-${item.name}`" :transform="`rotate(${item.deg} 240 240)`">
+        <text x="240" y="140" text-anchor="middle" fill="var(--zw-gold)" font-size="11" font-weight="600">
           {{ display(item.name, false) }}
         </text>
+        <g v-for="(yao, idx) in yaoDrawn(item.yaos)" :key="idx">
+          <rect v-if="yao === 1" x="230" :y="147 + idx * 7" width="20" height="4" fill="var(--zw-gold)" />
+          <template v-else>
+            <rect x="230" :y="147 + idx * 7" width="8" height="4" fill="var(--zw-gold)" />
+            <rect x="242" :y="147 + idx * 7" width="8" height="4" fill="var(--zw-gold)" />
+          </template>
+        </g>
       </g>
-      <text x="200" y="18" text-anchor="middle" fill="#b42318" font-size="11" font-weight="700">N</text>
-      <circle cx="200" cy="200" r="54" fill="color-mix(in srgb, var(--zw-paper) 70%, var(--zw-gold))" stroke="var(--zw-gold)" />
+      <text
+        v-for="item in houTian"
+        :key="`l-${item.name}`"
+        x="240"
+        y="186"
+        text-anchor="middle"
+        fill="var(--zw-ink)"
+        font-size="13"
+        font-weight="600"
+        :transform="`rotate(${item.deg} 240 240)`"
+      >
+        {{ display(LUOSHU_HAN[item.luoshu], false) }}
+      </text>
+      <text x="240" y="20" text-anchor="middle" fill="#b42318" font-size="11" font-weight="700">N</text>
+      <circle
+        cx="240"
+        cy="240"
+        r="46"
+        fill="color-mix(in srgb, var(--zw-paper) 70%, var(--zw-gold))"
+        stroke="var(--zw-gold)"
+      />
     </svg>
     <span class="cross" aria-hidden="true" />
     <span class="needle" aria-hidden="true" />
@@ -62,8 +103,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
-import { BAGUA_RING, MOUNTAINS } from '@/utils/luopan';
+import { defineComponent, ref } from 'vue';
+import { HOU_TIAN, LUOSHU_HAN, MOUNTAINS, XIAN_TIAN, normalizeDeg, yaoDrawn } from '@/utils/luopan';
 import { useDisplayText } from '@/composables/useDisplayText';
 
 export default defineComponent({
@@ -71,9 +112,61 @@ export default defineComponent({
   props: {
     heading: { type: Number, required: true },
   },
-  setup() {
+  emits: {
+    dragstart: () => true,
+    drag: (_deg: number) => true,
+  },
+  setup(props, { emit }) {
     const { display } = useDisplayText();
-    return { display, mountains: MOUNTAINS, bagua: BAGUA_RING };
+    const rootRef = ref<HTMLElement | null>(null);
+    let dragging = false;
+    let originAngle = 0;
+    let originHeading = 0;
+
+    const _inner = {
+      tickLen(tick: number) {
+        if (tick % 18 === 0) return { y1: 8, y2: 26 };
+        if (tick % 3 === 0) return { y1: 12, y2: 24 };
+        return { y1: 16, y2: 22 };
+      },
+      pointerAngle(event: PointerEvent) {
+        const el = rootRef.value;
+        if (!el) return 0;
+        const box = el.getBoundingClientRect();
+        const dx = event.clientX - (box.left + box.width / 2);
+        const dy = event.clientY - (box.top + box.height / 2);
+        return normalizeDeg((Math.atan2(dx, -dy) * 180) / Math.PI);
+      },
+      onPointerDown(event: PointerEvent) {
+        const el = rootRef.value;
+        if (!el) return;
+        el.setPointerCapture(event.pointerId);
+        dragging = true;
+        originAngle = _inner.pointerAngle(event);
+        originHeading = props.heading;
+        emit('dragstart');
+      },
+      onPointerMove(event: PointerEvent) {
+        if (!dragging) return;
+        event.preventDefault();
+        const delta = _inner.pointerAngle(event) - originAngle;
+        emit('drag', normalizeDeg(originHeading - delta));
+      },
+      onPointerUp() {
+        dragging = false;
+      },
+    };
+
+    return {
+      display,
+      rootRef,
+      mountains: MOUNTAINS,
+      houTian: HOU_TIAN,
+      xianTian: XIAN_TIAN,
+      LUOSHU_HAN,
+      yaoDrawn,
+      ..._inner,
+    };
   },
 });
 </script>
@@ -81,9 +174,15 @@ export default defineComponent({
 <style scoped>
 .disk {
   position: relative;
-  width: min(88vw, 420px);
+  width: min(92vw, 460px);
   aspect-ratio: 1;
   margin: 0 auto;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+.disk:active {
+  cursor: grabbing;
 }
 .plate {
   width: 100%;
@@ -100,9 +199,9 @@ export default defineComponent({
   pointer-events: none;
 }
 .cross {
-  width: 42%;
-  height: 42%;
-  margin: -21% 0 0 -21%;
+  width: 20%;
+  height: 20%;
+  margin: -10% 0 0 -10%;
   border: 1px solid rgba(180, 35, 24, 0.55);
   border-radius: 50%;
 }
@@ -129,7 +228,7 @@ export default defineComponent({
 .needle {
   width: 0;
   height: 0;
-  margin: -46% 0 0 -7px;
+  margin: -48% 0 0 -7px;
   border-left: 7px solid transparent;
   border-right: 7px solid transparent;
   border-bottom: 16px solid #b42318;

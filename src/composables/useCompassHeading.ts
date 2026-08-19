@@ -25,6 +25,7 @@ function readHeading(event: CompassOrientationEvent): number | null {
 export function useCompassHeading() {
   const heading = ref(0);
   const live = ref(false);
+  const paused = ref(false);
   const needsPermission = ref(false);
   const denied = ref(false);
   const supported = ref(false);
@@ -40,8 +41,24 @@ export function useCompassHeading() {
   };
 
   const tick = () => {
-    heading.value = lerpHeading(heading.value, raw, live.value ? 0.18 : 1);
+    if (!paused.value) {
+      heading.value = lerpHeading(heading.value, raw, live.value ? 0.18 : 1);
+    }
     raf = window.requestAnimationFrame(tick);
+  };
+
+  const pause = () => {
+    paused.value = true;
+  };
+
+  const resume = () => {
+    paused.value = false;
+  };
+
+  const setHeading = (deg: number) => {
+    const next = normalizeDeg(deg);
+    heading.value = next;
+    if (paused.value) raw = next;
   };
 
   const bind = () => {
@@ -95,5 +112,16 @@ export function useCompassHeading() {
     window.cancelAnimationFrame(raf);
   });
 
-  return { heading, live, needsPermission, denied, supported, requestStart };
+  return {
+    heading,
+    live,
+    paused,
+    needsPermission,
+    denied,
+    supported,
+    requestStart,
+    pause,
+    resume,
+    setHeading,
+  };
 }
