@@ -2,6 +2,7 @@
   <div
     ref="rootRef"
     class="disk"
+    :class="{ interactive }"
     role="img"
     :aria-label="display('研習地盤羅盤', false)"
     @pointerdown="onPointerDown"
@@ -103,7 +104,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref, watch } from 'vue';
 import { HOU_TIAN, LUOSHU_HAN, MOUNTAINS, XIAN_TIAN, normalizeDeg, yaoDrawn } from '@/utils/luopan';
 import { useDisplayText } from '@/composables/useDisplayText';
 
@@ -111,6 +112,8 @@ export default defineComponent({
   name: 'LuopanDisk',
   props: {
     heading: { type: Number, required: true },
+    /** 為 true 時才攔截手勢撥盤；關閉時頁面可正常滾動 */
+    interactive: { type: Boolean, default: false },
   },
   emits: {
     dragstart: () => true,
@@ -120,14 +123,44 @@ export default defineComponent({
     const { display } = useDisplayText();
     const rootRef = ref<HTMLElement | null>(null);
     let dragging = false;
+    let pointerId: number | null = null;
     let originAngle = 0;
     let originHeading = 0;
+
+    const endDrag = () => {
+      const el = rootRef.value;
+      if (dragging && el && pointerId !== null) {
+        try {
+          el.releasePointerCapture(pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
+      dragging = false;
+      pointerId = null;
+    };
+
+    watch(
+      () => props.interactive,
+      (on) => {
+        if (!on) endDrag();
+      },
+    );
 
     const _inner = {
       tickLen(tick: number) {
         if (tick % 18 === 0) return { y1: 8, y2: 26 };
         if (tick % 3 === 0) return { y1: 12, y2: 24 };
         return { y1: 16, y2: 22 };
+      },
+      insideDisk(event: PointerEvent) {
+        const el = rootRef.value;
+        if (!el) return false;
+        const box = el.getBoundingClientRect();
+        const cx = box.left + box.width / 2;
+        const cy = box.top + box.height / 2;
+        const r = Math.min(box.width, box.height) / 2;
+        return Math.hypot(event.clientX - cx, event.clientY - cy) <= r;
       },
       pointerAngle(event: PointerEvent) {
         const el = rootRef.value;
@@ -138,22 +171,32 @@ export default defineComponent({
         return normalizeDeg((Math.atan2(dx, -dy) * 180) / Math.PI);
       },
       onPointerDown(event: PointerEvent) {
+        if (!props.interactive) return;
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        if (!_inner.insideDisk(event)) return;
         const el = rootRef.value;
         if (!el) return;
-        el.setPointerCapture(event.pointerId);
         dragging = true;
+        pointerId = event.pointerId;
+        try {
+          el.setPointerCapture(event.pointerId);
+        } catch {
+          /* ignore */
+        }
         originAngle = _inner.pointerAngle(event);
         originHeading = props.heading;
         emit('dragstart');
       },
       onPointerMove(event: PointerEvent) {
-        if (!dragging) return;
+        if (!props.interactive || !dragging) return;
+        if (pointerId !== null && event.pointerId !== pointerId) return;
         event.preventDefault();
         const delta = _inner.pointerAngle(event) - originAngle;
         emit('drag', normalizeDeg(originHeading - delta));
       },
-      onPointerUp() {
-        dragging = false;
+      onPointerUp(event: PointerEvent) {
+        if (pointerId !== null && event.pointerId !== pointerId) return;
+        endDrag();
       },
     };
 
@@ -174,14 +217,24 @@ export default defineComponent({
 <style scoped>
 .disk {
   position: relative;
-  width: min(92vw, 460px);
+  width: 100%;
+  max-width: 460px;
   aspect-ratio: 1;
   margin: 0 auto;
+  border-radius: 50%;
+  /* 默認不攔截：手指從盤上滑過也能滾頁 */
+  touch-action: auto;
+  pointer-events: none;
+  user-select: none;
+  box-sizing: border-box;
+  filter: drop-shadow(0 8px 18px rgba(44, 36, 22, 0.12));
+}
+.disk.interactive {
+  pointer-events: auto;
   touch-action: none;
   cursor: grab;
-  user-select: none;
 }
-.disk:active {
+.disk.interactive:active {
   cursor: grabbing;
 }
 .plate {
@@ -189,7 +242,6 @@ export default defineComponent({
   height: 100%;
   transform-origin: 50% 50%;
   will-change: transform;
-  filter: drop-shadow(0 8px 18px rgba(44, 36, 22, 0.12));
 }
 .cross,
 .needle {

@@ -37,10 +37,26 @@ body,
   font-family: 'Songti SC', 'STSong', 'SimSun', 'PingFang SC', 'Microsoft YaHei', serif;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
+  overflow-x: hidden;
   background-image:
     radial-gradient(circle at 12% 8%, rgba(200, 169, 103, 0.12), transparent 36%),
     radial-gradient(circle at 88% 92%, rgba(58, 46, 92, 0.08), transparent 42%);
+}
+
+.app-shell {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.app-shell > main {
+  min-width: 0;
+  max-width: 100%;
 }
 
 html.theme-nightsky body {
@@ -53,10 +69,12 @@ html.theme-nightsky body {
 
 .page-container {
   max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
   padding: 24px 16px 48px;
   min-height: calc(100vh - 180px);
   font-size: var(--zw-font-size);
+  box-sizing: border-box;
 }
 
 /* PC / H5 全局区分 */

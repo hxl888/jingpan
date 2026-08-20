@@ -25,11 +25,18 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent } from 'vue';
+import { computed, defineComponent, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import starData from '@/data/starDict.json';
 import type { StarEntry } from '@/types';
+import { applySeo } from '@/composables/useSeo';
 import { useDisplayText } from '@/composables/useDisplayText';
+
+function clip(text: string, max = 140): string {
+  const t = text.replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  return t.length > max ? `${t.slice(0, max - 1)}…` : t;
+}
 
 export default defineComponent({
   name: 'StarDictDetailPage',
@@ -42,6 +49,30 @@ export default defineComponent({
       const key = data.alias[name] || name;
       return data.dict[key];
     });
+    watch(
+      entry,
+      (e) => {
+        const name = decodeURIComponent(String(route.params.name || ''));
+        if (!e) {
+          applySeo({
+            title: '未見此星',
+            description: '星曜詞典未找到對應條目。',
+            path: route.path,
+            noindex: true,
+          });
+          return;
+        }
+        const body = clip(e.answer || e.fullText || e.question || '');
+        applySeo({
+          title: `${e.name} · 星曜詞典`,
+          description:
+            body ||
+            `紫微斗數星曜「${e.name}」諸星問答原文對照，取自《紫微斗數全書》卷一。`,
+          path: `/star-dict/${encodeURIComponent(name)}`,
+        });
+      },
+      { immediate: true },
+    );
     const formatSong = (text: string) =>
       text
         .replace(/歌曰：?/g, '歌曰：\n')

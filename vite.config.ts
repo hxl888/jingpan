@@ -9,4 +9,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  server: {
+    host: true, // 允许通过局域网 IP 访问，如 http://10.11.3.60:5173/
+  },
 });

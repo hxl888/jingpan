@@ -80,6 +80,12 @@ export function normalizeDeg(deg: number): number {
   return ((deg % 360) + 360) % 360;
 }
 
+/** 將方位角映到 (−180, 180]，便於顯示「偏差 ±N°」 */
+export function signedDeg(deg: number): number {
+  const n = normalizeDeg(deg);
+  return n > 180 ? n - 360 : n;
+}
+
 export function lerpHeading(from: number, to: number, t: number): number {
   const diff = ((to - from + 540) % 360) - 180;
   return normalizeDeg(from + diff * t);

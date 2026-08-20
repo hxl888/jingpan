@@ -66,6 +66,7 @@ import { computed, defineComponent, nextTick, onMounted, onUnmounted, ref, watch
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router';
 import hexData from '@/data/yijingHexagrams.json';
 import YijingText, { type YijingBlock } from '@/components/YijingText.vue';
+import { applySeo } from '@/composables/useSeo';
 import { useDisplayText } from '@/composables/useDisplayText';
 import { useYaoguaSessionStore } from '@/store/yaoguaSession';
 import { trigramsOf } from '@/utils/yijingTrigrams';
@@ -75,6 +76,19 @@ import {
   wenPrevIndex,
   wenSectionOf,
 } from '@/data/yijingWenOrder';
+
+function excerptFromBlocks(blocks: YijingBlock[], max = 120): string {
+  const parts: string[] = [];
+  for (const b of blocks) {
+    if ((b.type === 'prose' || b.type === 'heading') && b.text?.trim()) {
+      parts.push(b.text.trim().replace(/\s+/g, ' '));
+      if (parts.join('').length >= max) break;
+    }
+  }
+  const raw = parts.join(' ').trim();
+  if (!raw) return '';
+  return raw.length > max ? `${raw.slice(0, max - 1)}…` : raw;
+}
 
 interface YijingHexagram {
   id: string;
@@ -124,6 +138,40 @@ export default defineComponent({
     const nextLink = computed(() => guaLink(nextEntry.value));
     const fromYaogua = computed(
       () => route.query.from === 'yaogua' || session.isFromYaogua(),
+    );
+
+    watch(
+      entry,
+      (h) => {
+        if (!h) {
+          applySeo({
+            title: '未見此卦',
+            description: '易經單卦詳解頁面未找到對應條目。',
+            path: route.path,
+            noindex: true,
+          });
+          return;
+        }
+        const tri = trigramsOf(h.index);
+        const excerpt = excerptFromBlocks(h.blocks);
+        const desc =
+          excerpt ||
+          `易經第 ${h.index} 卦「${h.name}」：上卦${tri.upper}、下卦${tri.lower}。站內原文對照，不編吉凶斷語。`;
+        applySeo({
+          title: `${h.name} · 第 ${h.index} 卦`,
+          description: desc,
+          path: `/yijing/${h.id}`,
+          jsonLd: {
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            headline: h.name,
+            description: desc,
+            inLanguage: 'zh-Hant',
+            isPartOf: { '@type': 'WebSite', name: '經盤' },
+          },
+        });
+      },
+      { immediate: true },
     );
 
     const floatLeft = ref(0);

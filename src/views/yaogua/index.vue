@@ -51,13 +51,21 @@
           }}
         </el-button>
         <el-button :disabled="shaking" @click="handleReset">{{ display('重來', false) }}</el-button>
-        <el-button v-if="isMobile" :disabled="shaking || done" @click="handleEnableMotion">
+        <!-- HTTP 下運動感應不可用，暫隱藏手機搖動入口
+        <el-button
+          v-if="isMobile"
+          :disabled="shaking || done || motionBlocked"
+          @click="handleEnableMotion"
+        >
           {{ display(motionOn ? '已啟用手機搖動' : '啟用手機搖動', false) }}
         </el-button>
+        -->
       </div>
-      <p v-if="isMobile" class="hint">
-        {{ display('亦可真的晃動手機起爻（需授權運動感應）。', false) }}
+      <!--
+      <p v-if="isMobile" class="hint" :class="{ warn: motionBlocked }">
+        {{ display(motionHint, false) }}
       </p>
+      -->
     </section>
 
     <section v-if="lines.length" class="panel" :style="cardStyle">
@@ -146,6 +154,7 @@ import {
   type SixPourSchedule,
   type YaoLine,
 } from '@/utils/yaogua';
+import { deviceMotionAccess } from '@/utils/secureSensors';
 import HexagramLines from './components/HexagramLines.vue';
 import TossCoins from './components/TossCoins.vue';
 
@@ -177,6 +186,14 @@ export default defineComponent({
     const pourSchedule = ref<SixPourSchedule | null>(null);
     const result = ref<CastResult | null>(null);
     const motionOn = ref(false);
+    const motionAccess = deviceMotionAccess();
+    const motionBlocked = motionAccess !== 'ok';
+    const motionHint =
+      motionAccess === 'need-https'
+        ? '手機搖動需 HTTPS 安全連線；當前為 HTTP，瀏覽器會攔截運動感應。請用上方「搖一搖」按鈕起爻。'
+        : motionAccess === 'unsupported'
+          ? '此裝置或瀏覽器不提供運動感應，請用「搖一搖」按鈕起爻。'
+          : '亦可真的晃動手機起爻（需授權運動感應）。';
     let lastShakeAt = 0;
     let lastMag = 9.8;
 
@@ -299,14 +316,28 @@ export default defineComponent({
     };
 
     const handleEnableMotion = async () => {
+      const access = deviceMotionAccess();
+      if (access === 'need-https') {
+        ElMessage.warning(
+          display(
+            '手機搖動需在 HTTPS 下使用。當前為 HTTP（如用 IP 訪問），瀏覽器會禁止運動感應。請用「搖一搖」按鈕，或為站點配置 HTTPS。',
+            false,
+          ),
+        );
+        return;
+      }
+      if (access === 'unsupported') {
+        ElMessage.warning(display('此裝置或瀏覽器不支持運動感應，請用「搖一搖」按鈕。', false));
+        return;
+      }
       try {
         const req = (
           DeviceMotionEvent as unknown as { requestPermission?: () => Promise<PermissionState> }
         ).requestPermission;
         if (typeof req === 'function') {
-          const state = await req();
+          const state = await req.call(DeviceMotionEvent);
           if (state !== 'granted') {
-            ElMessage.warning(display('未獲得運動感應權限', false));
+            ElMessage.warning(display('未獲得運動感應權限，請在系統／瀏覽器設定中允許。', false));
             return;
           }
         }
@@ -316,7 +347,9 @@ export default defineComponent({
           ElMessage.success(display('已啟用：晃動手機即可起爻', false));
         }
       } catch {
-        ElMessage.warning(display('此裝置不支持運動感應', false));
+        ElMessage.warning(
+          display('無法啟用運動感應（權限被拒或瀏覽器限制），請用「搖一搖」按鈕。', false),
+        );
       }
     };
 
@@ -337,6 +370,8 @@ export default defineComponent({
       done,
       quickMode,
       motionOn,
+      motionBlocked,
+      motionHint,
       primaryName,
       relatingName,
       primaryTrigrams,
@@ -425,6 +460,10 @@ h1 {
   text-align: center;
   font-size: 0.78rem;
   color: var(--zw-muted);
+  line-height: 1.55;
+}
+.hint.warn {
+  color: #9a3412;
 }
 .gua-block {
   display: grid;
