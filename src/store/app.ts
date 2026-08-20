@@ -1,40 +1,29 @@
 import { defineStore } from 'pinia';
 import { computed, ref, watch } from 'vue';
+import { ElMessage } from 'element-plus';
 import type { ScriptMode, ThemeMode } from '@/types';
 
-const STORAGE_KEY = 'zw-site-prefs';
+/** 舊版會寫入 localStorage；刷新需回到默認，故僅內存保存 */
+const LEGACY_STORAGE_KEY = 'zw-site-prefs';
+const FONT_MIN = 14;
+const FONT_MAX = 28;
+const DEFAULT_THEME: ThemeMode = 'xuanpaper';
+const DEFAULT_SCRIPT: ScriptMode = 'hant';
+const DEFAULT_FONT = 18;
 
-interface Prefs {
-  theme: ThemeMode;
-  script: ScriptMode;
-  fontSize: number;
-}
-
-function loadPrefs(): Prefs {
+export const useAppStore = defineStore('app', () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return { theme: 'xuanpaper', script: 'hant', fontSize: 18, ...JSON.parse(raw) };
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   } catch {
     /* ignore */
   }
-  return { theme: 'xuanpaper', script: 'hant', fontSize: 18 };
-}
 
-export const useAppStore = defineStore('app', () => {
-  const initial = loadPrefs();
-  const theme = ref<ThemeMode>(initial.theme);
-  const script = ref<ScriptMode>(initial.script);
-  const fontSize = ref(initial.fontSize);
+  const theme = ref<ThemeMode>(DEFAULT_THEME);
+  const script = ref<ScriptMode>(DEFAULT_SCRIPT);
+  const fontSize = ref(DEFAULT_FONT);
 
   const isDark = computed(() => theme.value === 'nightsky');
   const iztroLang = computed(() => (script.value === 'hans' ? 'zh-CN' : 'zh-TW'));
-
-  function persist() {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ theme: theme.value, script: script.value, fontSize: fontSize.value }),
-    );
-  }
 
   function applyDom() {
     const root = document.documentElement;
@@ -62,11 +51,24 @@ export const useAppStore = defineStore('app', () => {
   }
 
   function bumpFont(delta: number) {
-    fontSize.value = Math.min(24, Math.max(14, fontSize.value + delta));
+    const next = fontSize.value + delta * 2;
+    if (delta > 0 && fontSize.value >= FONT_MAX) {
+      ElMessage.info(script.value === 'hans' ? '已是最大字号' : '已是最大字號');
+      return;
+    }
+    if (delta < 0 && fontSize.value <= FONT_MIN) {
+      ElMessage.info(script.value === 'hans' ? '已是最小字号' : '已是最小字號');
+      return;
+    }
+    fontSize.value = Math.min(FONT_MAX, Math.max(FONT_MIN, next));
+    if (delta > 0 && fontSize.value >= FONT_MAX) {
+      ElMessage.info(script.value === 'hans' ? '已调至最大字号' : '已調至最大字號');
+    } else if (delta < 0 && fontSize.value <= FONT_MIN) {
+      ElMessage.info(script.value === 'hans' ? '已调至最小字号' : '已調至最小字號');
+    }
   }
 
   watch([theme, script, fontSize], () => {
-    persist();
     applyDom();
   });
 

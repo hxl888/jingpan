@@ -5,7 +5,7 @@
     <div class="layout">
       <section class="form-col rounded-lg border p-4" :style="cardStyle">
         <h2 class="mb-3 font-semibold">{{ display('生辰排盤', false) }}</h2>
-        <ChartForm :loading="loading" :seed="formSeed" @submit="handleGenerate" />
+        <ChartForm :loading="loading" :seed="formSeed" @submit="handleGenerate" @reset="handleReset" />
         <p v-if="trueSolarNote" class="mt-3 text-xs" style="color: var(--zw-muted)">{{ trueSolarNote }}</p>
         <div v-if="chart" class="mt-4 space-y-2">
           <el-form-item :label="display('大限／流年', false)">
@@ -13,8 +13,17 @@
               v-model="targetDate"
               type="date"
               value-format="YYYY-M-D"
+              :placeholder="display('選擇推運日期', false)"
               @change="handleHoroscope"
             />
+            <p class="horoscope-hint">
+              {{
+                display(
+                  '選一個公曆日期，查看該日所在大限（約十年一段）與流年，盤面宮位會標出對應大限起迄歲。預設為出生當天。',
+                  false,
+                )
+              }}
+            </p>
           </el-form-item>
           <p v-if="horoscope" class="text-sm">
             {{ display('大限', false) }} {{ horoscope.decadalRange }}　
@@ -76,7 +85,7 @@
 <script lang="ts">
 import { computed, defineComponent, nextTick, onActivated, onMounted, reactive, ref, toRefs } from 'vue';
 import { onBeforeRouteLeave, useRouter } from 'vue-router';
-import html2canvas from 'html2canvas';
+import { captureElement } from '@/utils/captureHtml';
 import ChartForm, { type ChartFormValue } from './components/ChartForm.vue';
 import ChartBoard from './components/ChartBoard.vue';
 import ChartResultTabs from './components/ChartResultTabs.vue';
@@ -188,15 +197,31 @@ export default defineComponent({
       },
       async handleExport() {
         if (!captureRef.value) return;
-        const canvas = await html2canvas(captureRef.value, { backgroundColor: null, scale: 2 });
-        const a = document.createElement('a');
-        a.href = canvas.toDataURL('image/png');
-        a.download = 'ziwei-chart.png';
-        a.click();
+        try {
+          const canvas = await captureElement(captureRef.value);
+          const a = document.createElement('a');
+          a.href = canvas.toDataURL('image/png');
+          a.download = 'ziwei-chart.png';
+          a.click();
+        } catch (err) {
+          ElMessage.error(err instanceof Error ? err.message : '導出失敗');
+        }
       },
       handleGoto(id: string) {
         session.markFromChart();
         void router.push({ path: '/book', query: { from: 'chart' }, hash: `#${id}` });
+      },
+      handleReset() {
+        _data.chart = null;
+        _data.patterns = [];
+        _data.excerpts = [];
+        _data.horoscope = null;
+        _data.targetDate = '';
+        _data.trueSolarNote = '';
+        _data.dialogVisible = false;
+        _data.activeStar = '';
+        session.clearSnapshot();
+        ElMessage.success(display('已重置表單與命盤', false));
       },
     };
 
@@ -271,6 +296,13 @@ export default defineComponent({
   grid-template-columns: 280px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+}
+.horoscope-hint {
+  margin: 6px 0 0;
+  font-size: 0.75em;
+  line-height: 1.55;
+  letter-spacing: 0.04em;
+  color: var(--zw-muted);
 }
 @media (max-width: 1100px) {
   .layout {

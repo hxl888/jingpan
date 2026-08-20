@@ -41,6 +41,7 @@
 <script lang="ts">
 import { computed, defineComponent } from 'vue';
 import { useDisplayText } from '@/composables/useDisplayText';
+import { navDesc } from '@/data/siteNav';
 
 /** 南上。角从正南顺时针。北斗落在西北空档，斗口朝圆心。 */
 const SKY: { name: string; deg: number; r: number }[] = [
@@ -63,12 +64,12 @@ export default defineComponent({
   setup() {
     const { display } = useDisplayText();
     const gates = [
-      { path: '/chart', title: '排盤', hint: '十二宮命盤', dir: 'south', dirLabel: '南', minor: false },
-      { path: '/luopan', title: '羅盤', hint: '八卦廿四山', dir: 'se', dirLabel: '東南', minor: true },
-      { path: '/book', title: '古籍', hint: '全書三卷', dir: 'east', dirLabel: '東', minor: false },
-      { path: '/star-dict', title: '星曜', hint: '諸星問答', dir: 'north', dirLabel: '北', minor: false },
-      { path: '/almanac', title: '黃曆', hint: '農曆宜忌', dir: 'sw', dirLabel: '西南', minor: true },
-      { path: '/pattern-dict', title: '格局', hint: '古本歌訣', dir: 'west', dirLabel: '西', minor: false },
+      { path: '/chart', title: '排盤', hint: navDesc('/chart'), dir: 'south', dirLabel: '南', minor: false },
+      { path: '/luopan', title: '羅盤', hint: navDesc('/luopan'), dir: 'se', dirLabel: '東南', minor: true },
+      { path: '/book', title: '古籍', hint: navDesc('/book'), dir: 'east', dirLabel: '東', minor: false },
+      { path: '/star-dict', title: '星曜', hint: navDesc('/star-dict'), dir: 'north', dirLabel: '北', minor: false },
+      { path: '/almanac', title: '黃曆', hint: navDesc('/almanac'), dir: 'sw', dirLabel: '西南', minor: true },
+      { path: '/pattern-dict', title: '格局', hint: navDesc('/pattern-dict'), dir: 'west', dirLabel: '西', minor: false },
     ];
     const skyStars = SKY.map((s) => ({ ...s, ...toXY(s.deg, s.r) }));
     const dipperPoints = computed(() => {
@@ -144,7 +145,7 @@ export default defineComponent({
   fill: var(--zw-gold);
   font-size: 8px;
   letter-spacing: 0.22em;
-  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  font-family: 'Songti SC', 'STSong', serif;
 }
 .hub {
   position: absolute;

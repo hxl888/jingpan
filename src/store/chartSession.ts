@@ -1,47 +1,26 @@
 import { defineStore } from 'pinia';
 import type { ChartFormValue } from '@/views/chart/components/ChartForm.vue';
 
-const STORAGE_KEY = 'zw-chart-session';
-
+/** 僅內存：刷新頁面清空；站內跳轉靠 keep-alive / Pinia 保留 */
 export interface ChartSessionSnapshot {
   form: ChartFormValue;
   targetDate: string;
   trueSolarNote: string;
 }
 
-interface PersistedSession extends ChartSessionSnapshot {
-  scrollY: number;
-}
-
-function loadSession(): PersistedSession | null {
-  try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as PersistedSession;
-  } catch {
-    return null;
-  }
-}
+const LEGACY_STORAGE_KEY = 'zw-chart-session';
 
 export const useChartSessionStore = defineStore('chartSession', () => {
-  const restored = loadSession();
-  let snapshot: ChartSessionSnapshot | null = restored
-    ? {
-        form: restored.form,
-        targetDate: restored.targetDate,
-        trueSolarNote: restored.trueSolarNote,
-      }
-    : null;
-  let scrollY = restored?.scrollY ?? 0;
-  let fromChart = false;
-
-  function persist() {
-    if (!snapshot) return;
-    sessionStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ ...snapshot, scrollY } satisfies PersistedSession),
-    );
+  // 清除舊版 sessionStorage，避免刷新後仍還原命盤
+  try {
+    sessionStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch {
+    /* ignore */
   }
+
+  let snapshot: ChartSessionSnapshot | null = null;
+  let scrollY = 0;
+  let fromChart = false;
 
   function saveSnapshot(next: ChartSessionSnapshot) {
     snapshot = {
@@ -49,12 +28,10 @@ export const useChartSessionStore = defineStore('chartSession', () => {
       targetDate: next.targetDate,
       trueSolarNote: next.trueSolarNote,
     };
-    persist();
   }
 
   function saveScroll() {
     scrollY = window.scrollY;
-    persist();
   }
 
   function markFromChart() {
@@ -64,6 +41,11 @@ export const useChartSessionStore = defineStore('chartSession', () => {
 
   function clearFromChart() {
     fromChart = false;
+  }
+
+  function clearSnapshot() {
+    snapshot = null;
+    scrollY = 0;
   }
 
   function getSnapshot() {
@@ -83,6 +65,7 @@ export const useChartSessionStore = defineStore('chartSession', () => {
     saveScroll,
     markFromChart,
     clearFromChart,
+    clearSnapshot,
     getSnapshot,
     getScrollY,
     isFromChart,

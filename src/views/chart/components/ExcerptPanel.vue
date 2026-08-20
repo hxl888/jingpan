@@ -8,8 +8,8 @@
       {{ display('生成命盤後，將摘取卷一賦文中含當前命宮星曜之名的原句。', false) }}
     </p>
     <ul class="space-y-3">
-      <li v-for="(item, idx) in items" :key="idx" class="classic-prose text-sm">
-        <button class="text-xs" style="color: var(--zw-gold)" @click="$emit('goto', item.chapterId)">
+      <li v-for="(item, idx) in items" :key="idx" class="classic-prose excerpt-item">
+        <button class="excerpt-link" style="color: var(--zw-gold)" @click="$emit('goto', item.chapterId)">
           {{ display(item.chapterTitle, false) }}
         </button>
         <p>{{ display(item.text) }}</p>
@@ -45,3 +45,19 @@ export default defineComponent({
   },
 });
 </script>
+
+<style scoped>
+.excerpt-item p {
+  margin: 0.25em 0 0;
+  line-height: 1.7;
+}
+.excerpt-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.85em;
+  text-decoration: underline;
+}
+</style>

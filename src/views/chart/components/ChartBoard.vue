@@ -180,10 +180,12 @@ export default defineComponent({
   min-height: 110px;
 }
 .palace.is-ming {
-  box-shadow: inset 0 0 0 2px var(--zw-gold);
+  /* 用 border 代替 inset box-shadow，html2canvas 对后者易出缝/错位 */
+  border: 2px solid var(--zw-gold);
+  padding: 5px;
 }
 .palace.is-shen {
-  background: color-mix(in srgb, var(--zw-paper) 80%, var(--zw-gold));
+  background: var(--zw-paper-gold);
 }
 .palace-head {
   display: flex;

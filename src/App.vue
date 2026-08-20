@@ -3,7 +3,7 @@
     <AppHeader />
     <main class="flex-1">
       <router-view v-slot="{ Component }">
-        <keep-alive include="ChartPage">
+        <keep-alive include="ChartPage,NamingPage,YijingPage,YaoguaPage">
           <component :is="Component" />
         </keep-alive>
       </router-view>

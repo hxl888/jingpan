@@ -1,10 +1,5 @@
 <template>
   <div class="page-container book-page">
-    <div v-if="showBack" class="back-bar">
-      <button type="button" class="back-btn" @click="handleBack">
-        {{ display('← 返回排盤', false) }}
-      </button>
-    </div>
     <div class="toolbar mb-4 flex flex-wrap items-center gap-2">
       <div class="volume-tabs">
         <button
@@ -64,6 +59,19 @@
     </div>
 
     <button
+      v-if="showFloatBack"
+      type="button"
+      class="float-back"
+      :class="{ dragging: floatDragging }"
+      :style="floatStyle"
+      @pointerdown="handleFloatDown"
+      @click="handleFloatClick"
+    >
+      <span class="float-ico" aria-hidden="true">‹</span>
+      <span class="float-txt">{{ display(floatBackLabel, false) }}</span>
+    </button>
+
+    <button
       v-show="showToTop"
       type="button"
       class="to-top"
@@ -85,6 +93,7 @@ import type { BookChapter, BookTocItem, BookVolume } from '@/types';
 import ClassicText from '@/components/ClassicText.vue';
 import { useAppStore } from '@/store/app';
 import { useChartSessionStore } from '@/store/chartSession';
+import { useNamingSessionStore } from '@/store/namingSession';
 import { useDisplayText } from '@/composables/useDisplayText';
 import { copySelection } from '@/utils/copy';
 
@@ -102,6 +111,7 @@ export default defineComponent({
     const router = useRouter();
     const store = useAppStore();
     const session = useChartSessionStore();
+    const namingSession = useNamingSessionStore();
     const { display } = useDisplayText();
     const toc = bookToc as BookTocItem[];
     const chapters = bookChapters as BookChapter[];
@@ -180,14 +190,104 @@ export default defineComponent({
 
     const handleCopy = () => copySelection();
 
-    const showBack = computed(() => route.query.from === 'chart' || session.isFromChart());
+    const fromNaming = computed(
+      () => route.query.from === 'naming' || namingSession.isFromNaming(),
+    );
+    const fromChart = computed(
+      () => route.query.from === 'chart' || session.isFromChart(),
+    );
+    const showFloatBack = computed(() => fromChart.value || fromNaming.value);
+    const floatBackLabel = computed(() =>
+      fromNaming.value ? '返回起名詳情' : '返回排盤',
+    );
+
+    const floatLeft = ref(0);
+    const floatTop = ref(0);
+    const floatDragging = ref(false);
+    const floatMoved = ref(false);
+    let floatOrigin = { x: 0, y: 0, left: 0, top: 0 };
+
+    const floatStyle = computed(() => ({
+      left: `${floatLeft.value}px`,
+      top: `${floatTop.value}px`,
+    }));
+
+    const clampFloat = (left: number, top: number) => {
+      const w = 148;
+      const h = 44;
+      const maxL = Math.max(8, window.innerWidth - w - 8);
+      const maxT = Math.max(8, window.innerHeight - h - 8);
+      return {
+        left: Math.min(maxL, Math.max(8, left)),
+        top: Math.min(maxT, Math.max(72, top)),
+      };
+    };
+
+    /** 默认贴在阅读区右缘中部偏上（接近截图标注位置） */
+    const placeFloatDefault = () => {
+      const reader = scrollerRef.value?.getBoundingClientRect();
+      const w = 148;
+      const h = 44;
+      let left: number;
+      let top: number;
+      if (reader && reader.width > 40) {
+        left = reader.right - w - 12;
+        top = reader.top + Math.max(72, reader.height * 0.28) - h / 2;
+      } else {
+        left = window.innerWidth - w - 20;
+        top = Math.round(window.innerHeight * 0.38);
+      }
+      const next = clampFloat(left, top);
+      floatLeft.value = next.left;
+      floatTop.value = next.top;
+    };
+
+    const handleFloatMove = (e: PointerEvent) => {
+      const dx = e.clientX - floatOrigin.x;
+      const dy = e.clientY - floatOrigin.y;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) floatMoved.value = true;
+      const next = clampFloat(floatOrigin.left + dx, floatOrigin.top + dy);
+      floatLeft.value = next.left;
+      floatTop.value = next.top;
+    };
+
+    const handleFloatUp = (e: PointerEvent) => {
+      floatDragging.value = false;
+      window.removeEventListener('pointermove', handleFloatMove);
+      window.removeEventListener('pointerup', handleFloatUp);
+      try {
+        (e.target as HTMLElement)?.releasePointerCapture?.(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const handleFloatDown = (e: PointerEvent) => {
+      if (e.button !== 0) return;
+      floatDragging.value = true;
+      floatMoved.value = false;
+      floatOrigin = {
+        x: e.clientX,
+        y: e.clientY,
+        left: floatLeft.value,
+        top: floatTop.value,
+      };
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      window.addEventListener('pointermove', handleFloatMove);
+      window.addEventListener('pointerup', handleFloatUp);
+    };
 
     const handleBack = () => {
       if (window.history.length > 1) {
         router.back();
         return;
       }
-      void router.push({ path: '/chart' });
+      void router.push({ path: fromNaming.value ? '/naming' : '/chart' });
+    };
+
+    const handleFloatClick = () => {
+      if (floatMoved.value) return;
+      handleBack();
     };
 
     watch(
@@ -201,8 +301,15 @@ export default defineComponent({
       },
     );
 
+    const keepFloatInView = () => {
+      const next = clampFloat(floatLeft.value, floatTop.value);
+      floatLeft.value = next.left;
+      floatTop.value = next.top;
+    };
+
     onMounted(() => {
       window.addEventListener('scroll', updateToTop, { passive: true });
+      window.addEventListener('resize', keepFloatInView, { passive: true });
       const hash = route.hash.replace('#', '');
       if (hash) {
         activeVolume.value = resolveVolumeById(hash);
@@ -210,14 +317,25 @@ export default defineComponent({
       } else if (filteredToc.value[0]) {
         activeId.value = filteredToc.value[0].id;
       }
+      void nextTick(() => {
+        if (showFloatBack.value) placeFloatDefault();
+      });
+    });
+
+    watch(showFloatBack, (on) => {
+      if (on) void nextTick(placeFloatDefault);
     });
 
     onUnmounted(() => {
       window.removeEventListener('scroll', updateToTop);
+      window.removeEventListener('resize', keepFloatInView);
+      window.removeEventListener('pointermove', handleFloatMove);
+      window.removeEventListener('pointerup', handleFloatUp);
     });
 
     onBeforeRouteLeave((to) => {
       if (to.name !== 'chart') session.clearFromChart();
+      if (to.name !== 'naming') namingSession.clearFromNaming();
     });
 
     return {
@@ -239,7 +357,12 @@ export default defineComponent({
       handleVolume,
       handleScroll,
       handleCopy,
-      showBack,
+      showFloatBack,
+      floatBackLabel,
+      floatStyle,
+      floatDragging,
+      handleFloatDown,
+      handleFloatClick,
       handleBack,
     };
   },
@@ -252,25 +375,6 @@ export default defineComponent({
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
-}
-.back-bar {
-  margin-bottom: 12px;
-}
-.back-btn {
-  border: 1px solid var(--zw-gold);
-  background: transparent;
-  color: var(--zw-ink);
-  padding: 8px 14px;
-  font-family: inherit;
-  font-size: 14px;
-  letter-spacing: 0.16em;
-  cursor: pointer;
-  border-radius: 8px;
-}
-.back-btn:hover,
-.back-btn:focus-visible {
-  color: var(--zw-primary);
-  background: color-mix(in srgb, var(--zw-paper) 70%, var(--zw-gold));
 }
 .volume-tabs {
   display: flex;
@@ -352,6 +456,63 @@ export default defineComponent({
 .to-top:focus-visible {
   color: var(--zw-ink);
   background: var(--zw-paper);
+}
+.float-back {
+  position: fixed;
+  z-index: 65;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 8px 14px 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--zw-gold) 70%, var(--zw-line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--zw-paper) 92%, var(--zw-gold));
+  color: var(--zw-primary);
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, #fff 55%, transparent) inset,
+    0 8px 22px rgba(44, 36, 22, 0.14);
+  backdrop-filter: blur(8px);
+  transition: box-shadow 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+.float-back .float-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--zw-gold) 28%, transparent);
+  color: var(--zw-primary);
+  font-size: 1.05rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.float-back .float-txt {
+  white-space: nowrap;
+}
+.float-back.dragging {
+  cursor: grabbing;
+  transform: scale(1.03);
+  box-shadow: 0 10px 28px rgba(44, 36, 22, 0.22);
+}
+.float-back:hover,
+.float-back:focus-visible {
+  color: var(--zw-ink);
+  background: var(--zw-paper);
+  outline: none;
+}
+.float-back:focus-visible {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--zw-gold) 55%, transparent),
+    0 8px 22px rgba(44, 36, 22, 0.14);
 }
 @media (max-width: 768px) {
   .book-layout {

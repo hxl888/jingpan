@@ -9,7 +9,7 @@ export default {
         gold: '#C8A967',
       },
       fontFamily: {
-        serif: ['"Noto Serif SC"', '"Songti SC"', 'serif'],
+        serif: ['"Songti SC"', '"STSong"', '"PingFang SC"', 'serif'],
       },
     },
   },

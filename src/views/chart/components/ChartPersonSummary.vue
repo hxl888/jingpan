@@ -130,19 +130,19 @@ export default defineComponent({
 <style scoped>
 h2 {
   margin: 0 0 8px;
-  font-size: 18px;
+  font-size: 1.1em;
   letter-spacing: 0.2em;
 }
 h3 {
   margin: 20px 0 8px;
-  font-size: 15px;
+  font-size: 0.95em;
   letter-spacing: 0.16em;
   color: var(--zw-primary);
 }
 .note,
 .empty,
 .meta {
-  font-size: 12px;
+  font-size: 0.75em;
   color: var(--zw-muted);
   line-height: 1.7;
 }
@@ -156,25 +156,25 @@ h3 {
 .palaces li {
   padding: 8px 0;
   border-bottom: 1px solid var(--zw-line);
-  font-size: 14px;
+  font-size: 0.9em;
   line-height: 1.7;
 }
 .palaces p {
   margin: 4px 0 0;
   color: var(--zw-muted);
-  font-size: 13px;
+  font-size: 0.85em;
 }
 .hit {
   padding: 12px 0;
   border-bottom: 1px solid var(--zw-line);
 }
 .hit header {
-  font-size: 13px;
+  font-size: 0.85em;
   color: var(--zw-gold);
   margin-bottom: 6px;
 }
 .classic {
-  font-size: 14px;
+  font-size: 0.9em;
   line-height: 1.85;
   margin: 0;
 }
@@ -186,7 +186,7 @@ h3 {
   padding: 0;
   cursor: pointer;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 0.75em;
   text-decoration: underline;
 }
 </style>

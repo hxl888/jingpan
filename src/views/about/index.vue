@@ -21,12 +21,18 @@
         <li>
           <a href="http://ab.newdu.com/book/ms261796.html" target="_blank" rel="noopener">卷三 · 國學典籍網</a>
         </li>
+        <li>
+          <a href="https://www.nihaixiahope.com/yijing.html" target="_blank" rel="noopener">易經64卦 · 斷易天機（倪海廈天紀公開頁）</a>
+        </li>
+        <li>
+          <a href="https://www.nihaixiahope.com/liurenfa/" target="_blank" rel="noopener">六壬法 · 倪海廈天紀公開頁</a>
+        </li>
       </ul>
       <h2 class="mb-2 font-semibold">{{ display('技術說明', false) }}</h2>
       <p class="mb-4">
         {{
           display(
-            '排盤使用公開曆法安星算法（iztro）。真太陽時依出生地經度與均時差校正鐘錶時刻後再入盤。廟旺落陷標記隨安星結果展示，格局與命盤摘句只輸出卷一對應原始歌訣或定義原文。卷二、卷三供站內閱讀。羅盤為研習地盤（廿四山、先後天、洛書），手機可讀方向感應器，不作風水斷事；老黃曆曆注取自 lunar-typescript。網站不生成 AI 解讀。',
+            '排盤使用公開曆法安星算法（iztro）。真太陽時依出生地經度與均時差校正鐘錶時刻後再入盤。廟旺落陷標記隨安星結果展示，格局與命盤摘句只輸出卷一對應原始歌訣或定義原文。卷二、卷三供站內閱讀。易經六十四卦取自倪海廈天紀《斷易天機》公開網頁整理（非全書原文）。六壬法依倪海廈天紀公開頁算法作農曆月日時六宮推算（本地計算，無 AI 解卦）。搖卦頁採三錢法本地隨機起六爻，成卦後自站內易經條目節選卦體講解原文並鏈接全文，不另行編寫吉凶斷語。羅盤為研習地盤（廿四山、先後天、洛書），手機可讀方向感應器，不作風水斷事；老黃曆曆注取自 lunar-typescript。起名頁依日柱納音生扶取喜用，用字為站內精選研習表（非全書原文），可跳轉卷二納音歌核對。網站不生成 AI 解讀。',
             false,
           )
         }}

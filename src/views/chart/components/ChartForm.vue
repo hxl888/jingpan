@@ -30,8 +30,8 @@
     </el-form-item>
     <el-form-item :label="display('性別', false)">
       <el-radio-group v-model="form.gender">
-        <el-radio label="男">{{ display('男', false) }}</el-radio>
-        <el-radio label="女">{{ display('女', false) }}</el-radio>
+        <el-radio value="男">{{ display('男', false) }}</el-radio>
+        <el-radio value="女">{{ display('女', false) }}</el-radio>
       </el-radio-group>
     </el-form-item>
     <el-form-item :label="display('出生地', false)">
@@ -98,22 +98,26 @@ export default defineComponent({
   },
   emits: {
     submit: (_val: ChartFormValue) => true,
+    reset: () => true,
   },
   setup(props, { emit }) {
     const { display } = useDisplayText();
     const formRef = ref();
-    const initial = getDefaultBirthplace();
-    const form = reactive<ChartFormValue>({
-      solarDate: '1990-1-1',
-      clock: '12:00',
-      timeIndex: 6,
-      gender: '男',
-      city: initial.label,
-      areaPath: [...DEFAULT_BIRTHPLACE_PATH],
-      lng: initial.lng,
-      lat: initial.lat,
-      useTrueSolar: false,
-    });
+    const defaults = (): ChartFormValue => {
+      const place = getDefaultBirthplace();
+      return {
+        solarDate: '1990-1-1',
+        clock: '12:00',
+        timeIndex: 6,
+        gender: '男',
+        city: place.label,
+        areaPath: [...DEFAULT_BIRTHPLACE_PATH],
+        lng: place.lng,
+        lat: place.lat,
+        useTrueSolar: false,
+      };
+    };
+    const form = reactive<ChartFormValue>(defaults());
 
     const mapPlaceTree = (nodes: BirthplaceNode[]): CascaderOption[] =>
       nodes.map((n) => ({
@@ -156,12 +160,8 @@ export default defineComponent({
 
     const handleSubmit = () => emit('submit', { ...form });
     const handleReset = () => {
-      form.solarDate = '1990-1-1';
-      form.clock = '12:00';
-      form.timeIndex = 6;
-      form.gender = '男';
-      form.useTrueSolar = false;
-      applyPlace(DEFAULT_BIRTHPLACE_PATH);
+      Object.assign(form, defaults());
+      emit('reset');
     };
 
     const applySeed = (seed: ChartFormValue) => {

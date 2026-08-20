@@ -126,7 +126,7 @@ export default defineComponent({
 
 <style scoped>
 .note {
-  font-size: 12px;
+  font-size: 0.75em;
   color: var(--zw-muted);
   line-height: 1.7;
   margin-bottom: 12px;
@@ -142,7 +142,7 @@ export default defineComponent({
   padding: 16px 0;
 }
 .palace-head h3 {
-  font-size: 16px;
+  font-size: 1em;
   margin-bottom: 6px;
 }
 .palace-head small {
@@ -152,11 +152,11 @@ export default defineComponent({
 }
 .tag {
   margin-left: 8px;
-  font-size: 11px;
+  font-size: 0.7em;
   color: var(--zw-gold);
 }
 .meta {
-  font-size: 12px;
+  font-size: 0.75em;
   color: var(--zw-muted);
   line-height: 1.7;
 }
@@ -172,18 +172,18 @@ export default defineComponent({
   margin-bottom: 12px;
 }
 .classic {
-  font-size: 14px;
+  font-size: 0.9em;
   line-height: 1.8;
 }
 .vernacular {
   margin-top: 4px;
-  font-size: 13px;
+  font-size: 0.85em;
   color: var(--zw-muted);
   line-height: 1.7;
 }
 .cites {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: 0.75em;
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
@@ -196,6 +196,7 @@ export default defineComponent({
   padding: 0;
   cursor: pointer;
   font-family: inherit;
+  font-size: inherit;
   text-decoration: underline;
 }
 .result-tabs :deep(.excerpt-panel) {

@@ -11,6 +11,7 @@
   --zw-muted: #6b5e4a;
   --zw-line: rgba(58, 46, 92, 0.18);
   --zw-quote: #efe4cc;
+  --zw-paper-gold: #f0e5cb;
   --zw-font-size: 18px;
 }
 
@@ -24,6 +25,7 @@ html.dark {
   --zw-muted: #b8a98a;
   --zw-line: rgba(200, 169, 103, 0.22);
   --zw-quote: #1c243c;
+  --zw-paper-gold: #2a2840;
 }
 
 html,
@@ -32,7 +34,7 @@ body,
   min-height: 100%;
   background: var(--zw-bg);
   color: var(--zw-ink);
-  font-family: 'Noto Serif SC', 'Songti SC', serif;
+  font-family: 'Songti SC', 'STSong', 'SimSun', 'PingFang SC', 'Microsoft YaHei', serif;
 }
 
 body {
@@ -54,6 +56,7 @@ html.theme-nightsky body {
   margin: 0 auto;
   padding: 24px 16px 48px;
   min-height: calc(100vh - 180px);
+  font-size: var(--zw-font-size);
 }
 
 /* PC / H5 全局区分 */
@@ -69,7 +72,7 @@ html.theme-nightsky body {
 }
 
 .classic-prose {
-  font-size: var(--zw-font-size);
+  font-size: 1em;
   line-height: 1.7;
   letter-spacing: 0.04em;
 }
