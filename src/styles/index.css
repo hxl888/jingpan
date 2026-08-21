@@ -38,11 +38,12 @@ body,
 }
 
 html {
-  overflow-x: hidden;
+  /* clip 不会像 hidden 那样把 fixed 顶栏“卷走” */
+  overflow-x: clip;
 }
 
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
   background-image:
     radial-gradient(circle at 12% 8%, rgba(200, 169, 103, 0.12), transparent 36%),
     radial-gradient(circle at 88% 92%, rgba(58, 46, 92, 0.08), transparent 42%);
@@ -51,7 +52,8 @@ body {
 .app-shell {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
+  /* 不要对壳层设 overflow，否则 sticky/fixed 易失效 */
+  overflow: visible;
 }
 
 .app-shell > main {
@@ -79,7 +81,7 @@ html.theme-nightsky body {
 
 /* PC / H5 全局区分 */
 .app-shell.is-h5 .page-container {
-  padding: 16px 12px 88px;
+  padding: 16px 14px 88px;
 }
 .app-shell.is-h5 .site-footer {
   padding: 14px 12px calc(14px + env(safe-area-inset-bottom));
@@ -87,6 +89,12 @@ html.theme-nightsky body {
 }
 .app-shell.is-pc .page-container {
   padding: 28px 24px 56px;
+}
+
+/* 底部弹层打开时锁住页面滚动 */
+html.sheet-open,
+html.sheet-open body {
+  overscroll-behavior: none;
 }
 
 .classic-prose {

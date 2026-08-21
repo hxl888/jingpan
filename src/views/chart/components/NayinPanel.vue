@@ -3,11 +3,31 @@
     <form class="query" @submit.prevent>
       <label>
         {{ display('公曆日期', false) }}
-        <input v-model="iso" type="date" @change="handlePick" />
+        <SheetDatePicker
+          v-if="isMobile"
+          v-model="iso"
+          :title="display('公曆日期', false)"
+          :placeholder="display('選擇公曆日期', false)"
+          :cancel-text="display('取消', false)"
+          :confirm-text="display('確定', false)"
+          :year-unit="display('年', false)"
+          :month-unit="display('月', false)"
+          :day-unit="display('日', false)"
+          format="padded"
+          @change="handlePick"
+        />
+        <input v-else v-model="iso" type="date" @change="handlePick" />
       </label>
       <label>
         {{ display('出生時辰', false) }}
-        <select v-model.number="timeIndex">
+        <SheetSelect
+          v-if="isMobile"
+          v-model="timeIndex"
+          :options="timeOptions"
+          :title="display('出生時辰', false)"
+          :cancel-text="display('取消', false)"
+        />
+        <select v-else v-model.number="timeIndex">
           <option v-for="(label, idx) in timeLabels" :key="idx" :value="idx">
             {{ display(label, false) }}
           </option>
@@ -66,20 +86,31 @@
 <script lang="ts">
 import { computed, defineComponent, reactive, toRefs } from 'vue';
 import { useDisplayText } from '@/composables/useDisplayText';
+import { useDevice } from '@/composables/useDevice';
 import { clockToTimeIndex, TIME_INDEX_LABELS } from '@/utils/trueSolar';
 import { toIsoDate } from '@/utils/almanac';
 import { lookupBirthNayin, NAYIN_PAIRS, type NayinPair } from '@/utils/nayin';
+import SheetSelect from '@/components/sheet/SheetSelect.vue';
+import SheetDatePicker from '@/components/sheet/SheetDatePicker.vue';
 
 export default defineComponent({
   name: 'NayinPanel',
+  components: { SheetSelect, SheetDatePicker },
   setup() {
     const { display } = useDisplayText();
+    const { isMobile } = useDevice();
     const now = new Date();
     const _data = reactive({
       iso: toIsoDate(now),
       timeIndex: clockToTimeIndex(now.getHours(), now.getMinutes()),
     });
     const result = computed(() => lookupBirthNayin(_data.iso, _data.timeIndex));
+    const timeOptions = computed(() =>
+      TIME_INDEX_LABELS.map((label, idx) => ({
+        label: display(label, false),
+        value: idx,
+      })),
+    );
     const hitKeys = computed(() => {
       const keys = result.value.pillars.map((p) => p.ganZhi);
       if (result.value.soul) keys.push(result.value.soul.ganZhi);
@@ -98,8 +129,10 @@ export default defineComponent({
     };
     return {
       display,
+      isMobile,
       pairs: NAYIN_PAIRS,
       timeLabels: TIME_INDEX_LABELS,
+      timeOptions,
       result,
       ...toRefs(_data),
       ..._methods,

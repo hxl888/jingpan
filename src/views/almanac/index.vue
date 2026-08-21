@@ -4,7 +4,22 @@
       <button type="button" @click="handleShift(-1)">{{ display('前一日', false) }}</button>
       <div>
         <h1>{{ display('老黃曆', false) }}</h1>
-        <input v-model="iso" class="date" type="date" @change="handlePick" />
+        <SheetDatePicker
+          v-if="isMobile"
+          v-model="iso"
+          class="date-sheet"
+          :title="display('選擇日期', false)"
+          :placeholder="display('選擇公曆日期', false)"
+          :cancel-text="display('取消', false)"
+          :confirm-text="display('確定', false)"
+          :year-unit="display('年', false)"
+          :month-unit="display('月', false)"
+          :day-unit="display('日', false)"
+          format="padded"
+          :max-year="maxYear"
+          @change="handlePick"
+        />
+        <input v-else v-model="iso" class="date" type="date" @change="handlePick" />
       </div>
       <button type="button" @click="handleShift(1)">{{ display('後一日', false) }}</button>
     </header>
@@ -87,16 +102,21 @@
 <script lang="ts">
 import { computed, defineComponent, reactive, toRefs } from 'vue';
 import { useDisplayText } from '@/composables/useDisplayText';
+import { useDevice } from '@/composables/useDevice';
 import { loadAlmanacDay, shiftIsoDate, toIsoDate } from '@/utils/almanac';
+import SheetDatePicker from '@/components/sheet/SheetDatePicker.vue';
 
 export default defineComponent({
   name: 'AlmanacPage',
+  components: { SheetDatePicker },
   setup() {
     const { display } = useDisplayText();
+    const { isMobile } = useDevice();
     const _data = reactive({
       iso: toIsoDate(new Date()),
     });
     const day = computed(() => loadAlmanacDay(_data.iso));
+    const maxYear = new Date().getFullYear() + 2;
     const _methods = {
       handleShift(days: number) {
         _data.iso = shiftIsoDate(_data.iso, days);
@@ -105,7 +125,7 @@ export default defineComponent({
         if (!_data.iso) _data.iso = toIsoDate(new Date());
       },
     };
-    return { display, day, ...toRefs(_data), ..._methods };
+    return { display, isMobile, day, maxYear, ...toRefs(_data), ..._methods };
   },
 });
 </script>
@@ -139,6 +159,11 @@ export default defineComponent({
 }
 .date {
   display: block;
+  margin: 8px auto 0;
+}
+.date-sheet {
+  display: block;
+  width: min(100%, 220px);
   margin: 8px auto 0;
 }
 .sheet {

@@ -117,13 +117,15 @@ export function getHoroscope(astrolabe: AstrolabeInstance, targetDate: string): 
   };
 }
 
-/** 将大限、流年流曜叠到盘面（运/流），便于切换对照。 */
+/** 将大限、流年流曜叠到盘面（运/流），并标出当前大限宫、流年宫。 */
 export function palacesWithHoroscope(
   astrolabe: AstrolabeInstance,
   palaces: ChartPalace[],
   targetDate: string,
 ): ChartPalace[] {
   const h = astrolabe.horoscope(targetDate);
+  const decadalBranch = h.decadal?.earthlyBranch ?? '';
+  const yearlyBranch = h.yearly?.earthlyBranch ?? '';
   return palaces.map((palace, index) => {
     const flow = [
       ...((h.decadal?.stars?.[index] ?? []) as { name: string; type: string; scope?: string }[]),
@@ -132,6 +134,8 @@ export function palacesWithHoroscope(
     return {
       ...palace,
       adjectiveStars: [...palace.adjectiveStars, ...flow],
+      isDecadalLimit: Boolean(decadalBranch) && palace.earthlyBranch === decadalBranch,
+      isYearlyLimit: Boolean(yearlyBranch) && palace.earthlyBranch === yearlyBranch,
     };
   });
 }

@@ -13,23 +13,15 @@
           {{ display(volumeLabel(v), false) }}
         </button>
       </div>
-      <el-select
+      <SheetSelect
         v-model="activeId"
-        class="md:hidden w-full"
+        class="book-toc-sheet md:hidden"
+        :options="tocOptions"
+        :title="display('選擇章節', false)"
         :placeholder="display('選擇章節', false)"
+        :cancel-text="display('取消', false)"
         @change="handleJump"
-      >
-        <el-option
-          v-for="item in filteredToc"
-          :key="item.id"
-          :label="display(item.title, false)"
-          :value="item.id"
-        />
-      </el-select>
-      <el-button size="small" @click="store.bumpFont(-1)">A-</el-button>
-      <el-button size="small" @click="store.bumpFont(1)">A+</el-button>
-      <el-button size="small" @click="store.toggleScript">{{ display('簡繁切換', false) }}</el-button>
-      <el-button size="small" @click="handleCopy">{{ display('複製選中', false) }}</el-button>
+      />
     </div>
 
     <p class="source-hint">{{ display(sourceHint, false) }}</p>
@@ -48,7 +40,13 @@
           {{ display(item.title, false) }}
         </a>
       </nav>
-      <div ref="scrollerRef" class="reader rounded-lg border p-5" :style="cardStyle" @scroll="handleScroll">
+      <div
+        ref="scrollerRef"
+        class="reader rounded-lg border p-5"
+        data-scroll-root
+        :style="cardStyle"
+        @scroll="handleScroll"
+      >
         <section v-for="chapter in filteredChapters" :id="chapter.id" :key="chapter.id" class="chapter">
           <h2 class="mb-4 text-2xl font-semibold" style="color: var(--zw-primary)">
             {{ display(chapter.title, false) }}
@@ -70,16 +68,6 @@
       <span class="float-ico" aria-hidden="true">‹</span>
       <span class="float-txt">{{ display(floatBackLabel, false) }}</span>
     </button>
-
-    <button
-      v-show="showToTop"
-      type="button"
-      class="to-top"
-      :aria-label="display('回到頂部', false)"
-      @click="handleToTop"
-    >
-      {{ display('頂', false) }}
-    </button>
   </div>
 </template>
 
@@ -91,11 +79,10 @@ import bookChapters from '@/data/bookChapters.json';
 import bookSources from '@/data/bookSources.json';
 import type { BookChapter, BookTocItem, BookVolume } from '@/types';
 import ClassicText from '@/components/ClassicText.vue';
-import { useAppStore } from '@/store/app';
+import SheetSelect from '@/components/sheet/SheetSelect.vue';
 import { useChartSessionStore } from '@/store/chartSession';
 import { useNamingSessionStore } from '@/store/namingSession';
 import { useDisplayText } from '@/composables/useDisplayText';
-import { copySelection } from '@/utils/copy';
 
 const volumes: BookVolume[] = [1, 2, 3];
 
@@ -105,11 +92,10 @@ function volumeLabel(v: BookVolume): string {
 
 export default defineComponent({
   name: 'BookPage',
-  components: { ClassicText },
+  components: { ClassicText, SheetSelect },
   setup() {
     const route = useRoute();
     const router = useRouter();
-    const store = useAppStore();
     const session = useChartSessionStore();
     const namingSession = useNamingSessionStore();
     const { display } = useDisplayText();
@@ -128,9 +114,14 @@ export default defineComponent({
     const filteredChapters = computed(() =>
       chapters.filter((c) => (c.volume ?? 1) === activeVolume.value),
     );
+    const tocOptions = computed(() =>
+      filteredToc.value.map((item) => ({
+        label: display(item.title, false),
+        value: item.id,
+      })),
+    );
     const activeId = ref(filteredToc.value[0]?.id ?? '');
     const scrollerRef = ref<HTMLElement>();
-    const showToTop = ref(false);
     const cardStyle = {
       background: 'var(--zw-paper)',
       borderColor: 'var(--zw-line)',
@@ -143,10 +134,11 @@ export default defineComponent({
       return `${s.note} 底本：${s.url}`;
     });
 
-    const handleJump = async (id: string) => {
-      activeId.value = id;
+    const handleJump = async (id: string | number) => {
+      const sid = String(id);
+      activeId.value = sid;
       await nextTick();
-      const el = document.getElementById(id);
+      const el = document.getElementById(sid);
       el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
 
@@ -165,16 +157,6 @@ export default defineComponent({
       }
     };
 
-    const updateToTop = () => {
-      const readerTop = scrollerRef.value?.scrollTop ?? 0;
-      showToTop.value = readerTop > 240 || window.scrollY > 240;
-    };
-
-    const handleToTop = () => {
-      scrollerRef.value?.scrollTo({ top: 0, behavior: 'smooth' });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
     const handleScroll = () => {
       const root = scrollerRef.value;
       if (!root) return;
@@ -185,10 +167,7 @@ export default defineComponent({
         if (el.getBoundingClientRect().top - 120 <= 0) current = item.id;
       }
       activeId.value = current;
-      updateToTop();
     };
-
-    const handleCopy = () => copySelection();
 
     const fromNaming = computed(
       () => route.query.from === 'naming' || namingSession.isFromNaming(),
@@ -308,7 +287,6 @@ export default defineComponent({
     };
 
     onMounted(() => {
-      window.addEventListener('scroll', updateToTop, { passive: true });
       window.addEventListener('resize', keepFloatInView, { passive: true });
       const hash = route.hash.replace('#', '');
       if (hash) {
@@ -327,7 +305,6 @@ export default defineComponent({
     });
 
     onUnmounted(() => {
-      window.removeEventListener('scroll', updateToTop);
       window.removeEventListener('resize', keepFloatInView);
       window.removeEventListener('pointermove', handleFloatMove);
       window.removeEventListener('pointerup', handleFloatUp);
@@ -344,19 +321,16 @@ export default defineComponent({
       volumeLabel,
       activeVolume,
       filteredToc,
+      tocOptions,
       filteredChapters,
       activeId,
       scrollerRef,
-      store,
       display,
       cardStyle,
       sourceHint,
-      showToTop,
-      handleToTop,
       handleJump,
       handleVolume,
       handleScroll,
-      handleCopy,
       showFloatBack,
       floatBackLabel,
       floatStyle,
@@ -375,6 +349,9 @@ export default defineComponent({
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+}
+.book-toc-sheet {
+  width: 100%;
 }
 .volume-tabs {
   display: flex;
@@ -434,28 +411,6 @@ export default defineComponent({
 .chapter {
   scroll-margin-top: 88px;
   margin-bottom: 48px;
-}
-.to-top {
-  position: fixed;
-  right: 16px;
-  bottom: calc(24px + env(safe-area-inset-bottom));
-  z-index: 60;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid var(--zw-gold);
-  background: color-mix(in srgb, var(--zw-paper) 88%, var(--zw-gold));
-  color: var(--zw-primary);
-  font-family: inherit;
-  font-size: 14px;
-  letter-spacing: 0.12em;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(44, 36, 22, 0.16);
-}
-.to-top:hover,
-.to-top:focus-visible {
-  color: var(--zw-ink);
-  background: var(--zw-paper);
 }
 .float-back {
   position: fixed;

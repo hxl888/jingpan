@@ -39,7 +39,7 @@ export const SITE_NAV: NavItem[] = [
       { path: '/yaogua', label: '搖卦', tag: '卦', desc: '三錢起卦·六爻' },
     ],
   },
-  { key: 'about', path: '/about', label: '關於', tag: '註', desc: '來源與聲明' },
+  { key: 'about', path: '/about', label: '關於', tag: '註', desc: '資料來源·免責聲明' },
 ];
 
 export function navDesc(path: string): string {

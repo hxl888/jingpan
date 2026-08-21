@@ -15,19 +15,40 @@
       <div class="fields">
         <label>
           <span>{{ display('農曆月', false) }}</span>
-          <el-select v-model="month" class="w-full">
+          <SheetSelect
+            v-if="isMobile"
+            v-model="month"
+            :options="monthOptions"
+            :title="display('農曆月', false)"
+            :cancel-text="display('取消', false)"
+          />
+          <el-select v-else v-model="month" class="w-full">
             <el-option v-for="n in 12" :key="n" :label="display(`${n}月`, false)" :value="n" />
           </el-select>
         </label>
         <label>
           <span>{{ display('農曆日', false) }}</span>
-          <el-select v-model="day" class="w-full">
+          <SheetSelect
+            v-if="isMobile"
+            v-model="day"
+            :options="dayOptions"
+            :title="display('農曆日', false)"
+            :cancel-text="display('取消', false)"
+          />
+          <el-select v-else v-model="day" class="w-full">
             <el-option v-for="n in 30" :key="n" :label="display(`${n}日`, false)" :value="n" />
           </el-select>
         </label>
         <label>
           <span>{{ display('時辰', false) }}</span>
-          <el-select v-model="hour" class="w-full">
+          <SheetSelect
+            v-if="isMobile"
+            v-model="hour"
+            :options="hourOptions"
+            :title="display('時辰', false)"
+            :cancel-text="display('取消', false)"
+          />
+          <el-select v-else v-model="hour" class="w-full">
             <el-option
               v-for="item in LIUREN_HOURS"
               :key="item.value"
@@ -124,6 +145,8 @@ import { Solar } from 'lunar-typescript';
 import { ElMessage } from 'element-plus';
 import contentJson from '@/data/liurenContent.json';
 import { useDisplayText } from '@/composables/useDisplayText';
+import { useDevice } from '@/composables/useDevice';
+import SheetSelect from '@/components/sheet/SheetSelect.vue';
 import LiurenHand from './components/LiurenHand.vue';
 import {
   LIUREN_HOURS,
@@ -135,15 +158,35 @@ import {
 
 export default defineComponent({
   name: 'LiurenPage',
-  components: { LiurenHand },
+  components: { LiurenHand, SheetSelect },
   setup() {
     const { display } = useDisplayText();
+    const { isMobile } = useDevice();
     const content = contentJson;
     const month = ref(1);
     const day = ref(1);
     const hour = ref(1);
     const result = ref<LiurenResult | null>(null);
     const previewIndex = ref(0);
+
+    const monthOptions = computed(() =>
+      Array.from({ length: 12 }, (_, i) => ({
+        label: display(`${i + 1}月`, false),
+        value: i + 1,
+      })),
+    );
+    const dayOptions = computed(() =>
+      Array.from({ length: 30 }, (_, i) => ({
+        label: display(`${i + 1}日`, false),
+        value: i + 1,
+      })),
+    );
+    const hourOptions = computed(() =>
+      LIUREN_HOURS.map((item) => ({
+        label: display(item.label, false),
+        value: item.value,
+      })),
+    );
 
     const previewPalace = computed(() => LIUREN_PALACES[previewIndex.value]);
     const handActive = computed(() => (result.value ? result.value.index : previewIndex.value));
@@ -195,11 +238,15 @@ export default defineComponent({
 
     return {
       display,
+      isMobile,
       content,
       cardStyle,
       month,
       day,
       hour,
+      monthOptions,
+      dayOptions,
+      hourOptions,
       result,
       previewIndex,
       previewPalace,

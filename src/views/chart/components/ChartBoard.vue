@@ -1,22 +1,31 @@
 <template>
-  <div class="chart-board-wrap" @wheel.prevent="handleWheel">
+  <div class="chart-board-wrap" @wheel="handleWheel">
     <div
       ref="boardRef"
       class="chart-board"
-      :style="{ transform: `scale(${scale})`, transformOrigin: 'center center' }"
+      :style="boardStyle"
       @touchstart="handleTouchStart"
-      @touchmove.prevent="handleTouchMove"
+      @touchmove="handleTouchMove"
     >
       <div
         v-for="palace in palaces"
         :key="palace.earthlyBranch"
         class="palace"
         :style="palaceStyle(palace.earthlyBranch)"
-        :class="{ 'is-ming': palace.name === '命宫' || palace.name === '命宮', 'is-shen': palace.isBodyPalace }"
+        :class="{
+          'is-ming': palace.name === '命宫' || palace.name === '命宮',
+          'is-shen': palace.isBodyPalace,
+          'is-decadal': palace.isDecadalLimit,
+          'is-yearly': palace.isYearlyLimit,
+        }"
       >
         <div class="palace-head">
           <span>{{ display(palace.aliasName || palace.name, false) }}</span>
           <span>{{ palace.heavenlyStem }}{{ palace.earthlyBranch }}</span>
+        </div>
+        <div v-if="palace.isDecadalLimit || palace.isYearlyLimit" class="limit-tags">
+          <em v-if="palace.isDecadalLimit">{{ display('大限', false) }}</em>
+          <em v-if="palace.isYearlyLimit" class="yearly">{{ display('流年', false) }}</em>
         </div>
         <p v-if="palace.decadal" class="decadal">
           {{ palace.decadal.range[0] }}–{{ palace.decadal.range[1] }}
@@ -68,10 +77,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, type PropType } from 'vue';
+import { computed, defineComponent, ref, type PropType } from 'vue';
 import type { ChartPalace } from '@/types';
 import { BRANCH_GRID, BRIGHTNESS_CLASS, MUTAGEN_CLASS } from '@/utils/chart';
 import { useDisplayText } from '@/composables/useDisplayText';
+import { useDevice } from '@/composables/useDevice';
 import starData from '@/data/starDict.json';
 import type { StarEntry } from '@/types';
 
@@ -90,10 +100,17 @@ export default defineComponent({
   },
   setup() {
     const { display } = useDisplayText();
+    const { isMobile } = useDevice();
     const boardRef = ref<HTMLElement>();
     const scale = ref(1);
     const dict = (starData as { dict: Record<string, StarEntry>; alias: Record<string, string> });
     let lastDist = 0;
+
+    const boardStyle = computed(() => {
+      // H5 盘面已 CSS 铺满，不再 scale，避免拦截滚动
+      if (isMobile.value) return undefined;
+      return { transform: `scale(${scale.value})`, transformOrigin: 'center center' };
+    });
 
     const palaceStyle = (branch: string) => {
       const pos = BRANCH_GRID[branch];
@@ -116,6 +133,8 @@ export default defineComponent({
     };
 
     const handleWheel = (e: WheelEvent) => {
+      if (isMobile.value) return;
+      e.preventDefault();
       scale.value = Math.min(2.2, Math.max(0.6, scale.value + (e.deltaY > 0 ? -0.08 : 0.08)));
     };
 
@@ -127,11 +146,14 @@ export default defineComponent({
     };
 
     const handleTouchStart = (e: TouchEvent) => {
+      if (isMobile.value) return;
       if (e.touches.length === 2) lastDist = distance(e);
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (e.touches.length !== 2) return;
+      // 单指滑动必须放行，否则 H5 页面无法滚动
+      if (isMobile.value || e.touches.length !== 2) return;
+      e.preventDefault();
       const dist = distance(e);
       if (!lastDist) {
         lastDist = dist;
@@ -144,7 +166,7 @@ export default defineComponent({
     return {
       display,
       boardRef,
-      scale,
+      boardStyle,
       palaceStyle,
       brightnessClass,
       mutagenClass,
@@ -161,8 +183,11 @@ export default defineComponent({
 <style scoped>
 .chart-board-wrap {
   overflow: auto;
-  touch-action: none;
+  touch-action: pan-y;
   padding: 8px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 .chart-board {
   display: grid;
@@ -171,6 +196,7 @@ export default defineComponent({
   gap: 4px;
   min-width: 520px;
   min-height: 520px;
+  box-sizing: border-box;
 }
 .palace {
   border: 1px solid var(--zw-line);
@@ -178,6 +204,9 @@ export default defineComponent({
   padding: 6px;
   font-size: 12px;
   min-height: 110px;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 .palace.is-ming {
   /* 用 border 代替 inset box-shadow，html2canvas 对后者易出缝/错位 */
@@ -187,11 +216,50 @@ export default defineComponent({
 .palace.is-shen {
   background: var(--zw-paper-gold);
 }
+.palace.is-decadal {
+  border: 2px solid var(--zw-primary);
+  padding: 5px;
+  background: color-mix(in srgb, var(--zw-primary) 8%, var(--zw-paper));
+}
+.palace.is-yearly:not(.is-decadal) {
+  border: 2px solid var(--zw-gold);
+  padding: 5px;
+  background: color-mix(in srgb, var(--zw-gold) 14%, var(--zw-paper));
+}
+.palace.is-decadal.is-yearly {
+  background: color-mix(in srgb, var(--zw-primary) 6%, color-mix(in srgb, var(--zw-gold) 12%, var(--zw-paper)));
+}
+.limit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 2px 0 4px;
+}
+.limit-tags em {
+  font-style: normal;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #fff;
+  background: var(--zw-primary);
+}
+.limit-tags em.yearly {
+  background: color-mix(in srgb, var(--zw-gold) 85%, #7a5b12);
+  color: var(--zw-ink);
+}
 .palace-head {
   display: flex;
   justify-content: space-between;
+  gap: 2px;
   font-weight: 600;
   color: var(--zw-primary);
+}
+.palace-head span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .decadal {
   color: var(--zw-muted);
@@ -256,5 +324,97 @@ html.theme-nightsky .star.sha {
   background: var(--zw-paper);
   padding: 8px;
   line-height: 1.8;
+  min-width: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.center-panel p {
+  margin: 0;
+  max-width: 100%;
+  word-break: break-word;
+}
+@media (max-width: 767.98px) {
+  .chart-board-wrap {
+    padding: 0;
+    overflow: visible;
+    touch-action: pan-y;
+  }
+  .chart-board {
+    width: 100%;
+    min-width: 0;
+    min-height: 0;
+    /* 不再压成正方形：行高随内容长高，避免宫位挤成一团 */
+    aspect-ratio: auto;
+    gap: 5px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(126px, auto));
+  }
+  .palace {
+    display: flex;
+    flex-direction: column;
+    padding: 7px 6px 8px;
+    font-size: 11px;
+    min-height: 126px;
+    line-height: 1.4;
+    overflow: visible;
+  }
+  .palace.is-ming {
+    padding: 6px 5px 7px;
+  }
+  .palace-head {
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+    gap: 4px;
+  }
+  .palace-head span:last-child {
+    flex-shrink: 0;
+    color: var(--zw-muted);
+    font-weight: 500;
+    font-size: 10px;
+  }
+  .decadal {
+    margin: 0 0 6px;
+    font-size: 10px;
+    line-height: 1.3;
+    letter-spacing: 0.02em;
+  }
+  .stars {
+    gap: 4px 0;
+    margin-top: 0;
+    flex: 1;
+    align-content: flex-start;
+  }
+  /* 主星单独成行，辅星/杂曜换行排布，减轻横向挤兑 */
+  .star.major {
+    flex: 0 0 100%;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    letter-spacing: 0.02em;
+  }
+  .star.minor,
+  .star.adj {
+    flex: 0 0 auto;
+    margin-right: 6px;
+    padding: 0;
+    font-size: 10.5px;
+    line-height: 1.4;
+  }
+  .star small,
+  .star i {
+    font-size: 10px;
+    margin-left: 2px;
+  }
+  .center-panel {
+    padding: 12px 10px;
+    line-height: 1.75;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    gap: 4px;
+  }
+  .center-panel p + p {
+    margin-top: 2px;
+  }
 }
 </style>

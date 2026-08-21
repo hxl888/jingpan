@@ -65,6 +65,10 @@ export interface ChartPalace {
   minorStars: ChartStar[];
   adjectiveStars: ChartStar[];
   decadal?: { range: [number, number]; heavenlyStem: string; earthlyBranch: string };
+  /** 当前推运日期所落之大限宫 */
+  isDecadalLimit?: boolean;
+  /** 当前推运日期所落之流年宫 */
+  isYearlyLimit?: boolean;
 }
 
 export interface MatchedPattern {

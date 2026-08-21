@@ -2,11 +2,30 @@
   <form class="naming-form" @submit.prevent="handleSubmit">
     <label>
       {{ display('公曆日期', false) }}
-      <input v-model="iso" type="date" required />
+      <SheetDatePicker
+        v-if="isMobile"
+        v-model="iso"
+        :title="display('公曆日期', false)"
+        :placeholder="display('選擇公曆日期', false)"
+        :cancel-text="display('取消', false)"
+        :confirm-text="display('確定', false)"
+        :year-unit="display('年', false)"
+        :month-unit="display('月', false)"
+        :day-unit="display('日', false)"
+        format="padded"
+      />
+      <input v-else v-model="iso" type="date" required />
     </label>
     <label>
       {{ display('出生時辰', false) }}
-      <select v-model.number="timeIndex">
+      <SheetSelect
+        v-if="isMobile"
+        v-model="timeIndex"
+        :options="timeOptions"
+        :title="display('出生時辰', false)"
+        :cancel-text="display('取消', false)"
+      />
+      <select v-else v-model.number="timeIndex">
         <option v-for="(label, idx) in timeLabels" :key="idx" :value="idx">
           {{ display(label, false) }}
         </option>
@@ -18,7 +37,14 @@
     </label>
     <label>
       {{ display('性別（僅展示，不參與用字）', false) }}
-      <select v-model="gender">
+      <SheetSelect
+        v-if="isMobile"
+        v-model="gender"
+        :options="genderOptions"
+        :title="display('性別', false)"
+        :cancel-text="display('取消', false)"
+      />
+      <select v-else v-model="gender">
         <option value="">{{ display('未填', false) }}</option>
         <option value="男">{{ display('男', false) }}</option>
         <option value="女">{{ display('女', false) }}</option>
@@ -29,13 +55,17 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, toRefs } from 'vue';
+import { computed, defineComponent, reactive, toRefs } from 'vue';
 import { useDisplayText } from '@/composables/useDisplayText';
+import { useDevice } from '@/composables/useDevice';
 import { clockToTimeIndex, TIME_INDEX_LABELS } from '@/utils/trueSolar';
 import { toIsoDate } from '@/utils/almanac';
+import SheetSelect from '@/components/sheet/SheetSelect.vue';
+import SheetDatePicker from '@/components/sheet/SheetDatePicker.vue';
 
 export default defineComponent({
   name: 'NamingForm',
+  components: { SheetSelect, SheetDatePicker },
   emits: {
     submit: (_payload: {
       iso: string;
@@ -46,6 +76,7 @@ export default defineComponent({
   },
   setup(_props, { emit }) {
     const { display } = useDisplayText();
+    const { isMobile } = useDevice();
     const now = new Date();
     const _data = reactive({
       iso: toIsoDate(now),
@@ -53,6 +84,19 @@ export default defineComponent({
       surname: '',
       gender: '',
     });
+
+    const timeOptions = computed(() =>
+      TIME_INDEX_LABELS.map((label, idx) => ({
+        label: display(label, false),
+        value: idx,
+      })),
+    );
+    const genderOptions = computed(() => [
+      { label: display('未填', false), value: '' },
+      { label: display('男', false), value: '男' },
+      { label: display('女', false), value: '女' },
+    ]);
+
     const handleSubmit = () => {
       if (!_data.iso) return;
       emit('submit', {
@@ -64,7 +108,10 @@ export default defineComponent({
     };
     return {
       display,
+      isMobile,
       timeLabels: TIME_INDEX_LABELS,
+      timeOptions,
+      genderOptions,
       ...toRefs(_data),
       handleSubmit,
     };

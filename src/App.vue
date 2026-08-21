@@ -9,6 +9,7 @@
       </router-view>
     </main>
     <AppFooter />
+    <BackToTop />
   </div>
 </template>
 
@@ -16,11 +17,12 @@
 import { defineComponent } from 'vue';
 import AppHeader from '@/components/AppHeader.vue';
 import AppFooter from '@/components/AppFooter.vue';
+import BackToTop from '@/components/BackToTop.vue';
 import { useDevice } from '@/composables/useDevice';
 
 export default defineComponent({
   name: 'App',
-  components: { AppHeader, AppFooter },
+  components: { AppHeader, AppFooter, BackToTop },
   setup() {
     const { deviceClass } = useDevice();
     return { deviceClass };

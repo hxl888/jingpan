@@ -21,7 +21,14 @@
         </div>
         <label class="filter">
           <span>{{ display('八卦', false) }}</span>
-          <el-select v-model="trigramFilter" size="small" style="width: 7.5rem">
+          <SheetSelect
+            v-if="isMobile"
+            v-model="trigramFilter"
+            :options="trigramOptions"
+            :title="display('八卦', false)"
+            :cancel-text="display('取消', false)"
+          />
+          <el-select v-else v-model="trigramFilter" size="small" style="width: 7.5rem">
             <el-option :label="display('全部', false)" value="" />
             <el-option
               v-for="g in TRIGRAM_OPTIONS"
@@ -99,7 +106,9 @@ import { onBeforeRouteLeave } from 'vue-router';
 import introData from '@/data/yijingIntro.json';
 import hexData from '@/data/yijingHexagrams.json';
 import YijingText, { type YijingBlock } from '@/components/YijingText.vue';
+import SheetSelect from '@/components/sheet/SheetSelect.vue';
 import { useDisplayText } from '@/composables/useDisplayText';
+import { useDevice } from '@/composables/useDevice';
 import { trigramsOf } from '@/utils/yijingTrigrams';
 import { WEN_HEXAGRAM_ORDER } from '@/data/yijingWenOrder';
 
@@ -128,9 +137,10 @@ function restoreListScroll() {
 
 export default defineComponent({
   name: 'YijingPage',
-  components: { YijingText },
+  components: { YijingText, SheetSelect },
   setup() {
     const { display } = useDisplayText();
+    const { isMobile } = useDevice();
     const intro = introData as {
       title: string;
       note: string;
@@ -138,6 +148,11 @@ export default defineComponent({
       blocks: YijingBlock[];
     };
     const trigramFilter = ref('');
+
+    const trigramOptions = computed(() => [
+      { label: display('全部', false), value: '' },
+      ...TRIGRAM_OPTIONS.map((g) => ({ label: display(g, false), value: g })),
+    ]);
 
     const byIndex = new Map(
       (hexData as { hexagrams: HexItem[] }).hexagrams.map((h) => [h.index, h]),
@@ -186,9 +201,11 @@ export default defineComponent({
 
     return {
       display,
+      isMobile,
       intro,
       TRIGRAM_OPTIONS,
       trigramFilter,
+      trigramOptions,
       upperJing,
       lowerJing,
       filteredList,
@@ -256,6 +273,9 @@ export default defineComponent({
   font-size: 0.82rem;
   letter-spacing: 0.1em;
   color: var(--zw-ink);
+}
+.filter :deep(.sheet-select) {
+  min-width: 7.5rem;
 }
 .sec-title {
   margin: 1rem 0 0.55rem;

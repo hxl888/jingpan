@@ -27,33 +27,25 @@
           <button type="button" class="close" @click="handleClose">{{ display('關閉', false) }}</button>
         </header>
 
-        <div v-for="group in groups" :key="group.key" class="group">
-          <h3 v-if="group.title" class="group-title">{{ display(group.title, false) }}</h3>
-          <nav class="grid">
-            <router-link
-              v-for="item in group.items"
-              :key="item.path"
-              :to="item.path"
-              class="cell"
-              @click="handleClose"
-            >
-              <span class="tag">{{ display(item.tag || '', false) }}</span>
-              <b>{{ display(item.label, false) }}</b>
-              <em>{{ display(item.desc || '', false) }}</em>
-            </router-link>
-          </nav>
+        <div class="sheet-body">
+          <div v-for="group in groups" :key="group.key" class="group">
+            <h3 v-if="group.title" class="group-title">{{ display(group.title, false) }}</h3>
+            <nav class="grid">
+              <router-link
+                v-for="item in group.items"
+                :key="item.path"
+                :to="item.path"
+                class="cell"
+                @click="handleClose"
+              >
+                <span class="tag">{{ display(item.tag || '', false) }}</span>
+                <b>{{ display(item.label, false) }}</b>
+                <em>{{ display(item.desc || '', false) }}</em>
+              </router-link>
+            </nav>
+          </div>
         </div>
 
-        <div class="tools">
-          <button type="button" @click="store.toggleScript">
-            {{ store.script === 'hant' ? display('繁／簡', false) : '繁/简' }}
-          </button>
-          <button type="button" @click="store.toggleTheme">
-            {{ display(store.isDark ? '宣紙' : '夜空', false) }}
-          </button>
-          <button type="button" @click="store.bumpFont(-1)">A-</button>
-          <button type="button" @click="store.bumpFont(1)">A+</button>
-        </div>
       </aside>
     </transition>
   </teleport>
@@ -61,7 +53,6 @@
 
 <script lang="ts">
 import { computed, defineComponent, ref, watch } from 'vue';
-import { useAppStore } from '@/store/app';
 import { useDisplayText } from '@/composables/useDisplayText';
 import { SITE_NAV, type NavChild } from '@/data/siteNav';
 
@@ -82,7 +73,6 @@ export default defineComponent({
     'update:modelValue': (_v: boolean) => true,
   },
   setup(props, { emit }) {
-    const store = useAppStore();
     const { display } = useDisplayText();
     const sheetRef = ref<HTMLElement | null>(null);
     const dragY = ref(0);
@@ -102,13 +92,18 @@ export default defineComponent({
           continue;
         }
         if (!item.path) continue;
-        const last = list[list.length - 1];
         const lone: NavChild = {
           path: item.path,
           label: item.label,
           tag: item.tag,
           desc: item.desc,
         };
+        // 關於等獨立入口：自帶分組標題，避免貼在「工具」格網裡像同一欄
+        if (item.key === 'about') {
+          list.push({ key: item.key, title: item.label, items: [lone] });
+          continue;
+        }
+        const last = list[list.length - 1];
         if (last && !last.title) {
           last.items.push(lone);
         } else {
@@ -171,7 +166,6 @@ export default defineComponent({
     );
 
     return {
-      store,
       display,
       groups,
       sheetRef,
@@ -198,13 +192,15 @@ export default defineComponent({
   right: 0;
   bottom: 0;
   z-index: 90;
+  display: flex;
+  flex-direction: column;
   max-height: min(78vh, 640px);
-  overflow: auto;
-  padding: 10px 16px calc(18px + env(safe-area-inset-bottom));
+  padding: 10px 0 calc(14px + env(safe-area-inset-bottom));
   border-radius: 18px 18px 0 0;
   background: var(--zw-paper);
   border-top: 1px solid var(--zw-gold);
   box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.22);
+  overflow: hidden;
 }
 .handle {
   width: 42px;
@@ -216,7 +212,8 @@ export default defineComponent({
 .drag-zone {
   touch-action: none;
   cursor: grab;
-  padding: 10px 0 14px;
+  flex: none;
+  padding: 10px 16px 14px;
   margin: -6px 0 0;
 }
 .drag-zone:active {
@@ -226,7 +223,15 @@ export default defineComponent({
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 14px;
+  flex: none;
+  margin: 0 16px 12px;
+}
+.sheet-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 16px 12px;
+  -webkit-overflow-scrolling: touch;
 }
 .sheet-head strong {
   letter-spacing: 0.22em;
@@ -289,21 +294,6 @@ export default defineComponent({
   line-height: 1.45;
   color: var(--zw-muted);
   letter-spacing: 0.06em;
-}
-.tools {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-  margin-top: 14px;
-}
-.tools button {
-  border: 1px solid var(--zw-line);
-  background: transparent;
-  color: var(--zw-ink);
-  padding: 10px 0;
-  font-family: inherit;
-  letter-spacing: 0.08em;
-  border-radius: 10px;
 }
 .drawer-fade-enter-active,
 .drawer-fade-leave-active {

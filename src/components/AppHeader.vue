@@ -1,86 +1,103 @@
 <template>
-  <header class="site-header" :class="deviceClass">
-    <div class="bar">
-      <router-link to="/" class="logo">
-        <img src="/assets/decor/yin-yang.svg" alt="" class="mark" width="22" height="22" />
-        <span>{{ display('經盤', false) }}</span>
-      </router-link>
+  <div
+    class="site-header-spacer"
+    aria-hidden="true"
+    :style="{ height: `${headerH}px` }"
+  />
+  <teleport to="body">
+    <header ref="headerRef" class="site-header" :class="deviceClass">
+      <div class="bar">
+        <router-link to="/" class="logo">
+          <img src="/assets/decor/yin-yang.svg" alt="" class="mark" width="22" height="22" />
+          <span>{{ display('經盤', false) }}</span>
+        </router-link>
 
-      <nav v-if="isPc" class="nav" :aria-label="display('主導航', false)">
-        <template v-for="item in navs" :key="item.key">
-          <router-link
-            v-if="item.path && !item.children"
-            :to="item.path"
-            class="nav-link"
-            :class="{ 'is-active': isActive(item) }"
-            :active-class="item.path === '/' ? undefined : 'is-active'"
-            exact-active-class="is-active"
-          >
-            {{ display(item.label, false) }}
-          </router-link>
-
-          <div
-            v-else
-            class="nav-drop"
-            :class="{ open: openKey === item.key, 'is-active': isActive(item) }"
-            @mouseenter="openKey = item.key"
-            @mouseleave="openKey = ''"
-          >
-            <button
-              type="button"
-              class="nav-link nav-trigger"
-              :aria-expanded="openKey === item.key"
-              @click="toggleDrop(item.key)"
+        <nav v-if="isPc" class="nav" :aria-label="display('主導航', false)">
+          <template v-for="item in navs" :key="item.key">
+            <router-link
+              v-if="item.path && !item.children"
+              :to="item.path"
+              class="nav-link"
+              :class="{ 'is-active': isActive(item) }"
+              :active-class="item.path === '/' ? undefined : 'is-active'"
+              exact-active-class="is-active"
             >
               {{ display(item.label, false) }}
-              <span class="caret" aria-hidden="true">▾</span>
-            </button>
-            <div v-show="openKey === item.key" class="drop-panel" role="menu">
-              <router-link
-                v-for="child in item.children"
-                :key="child.path"
-                :to="child.path"
-                class="drop-link"
-                role="menuitem"
-                :class="{ 'is-active': isChildActive(child.path) }"
-                @click="openKey = ''"
+            </router-link>
+
+            <div
+              v-else
+              class="nav-drop"
+              :class="{ open: openKey === item.key, 'is-active': isActive(item) }"
+              @mouseenter="openKey = item.key"
+              @mouseleave="openKey = ''"
+            >
+              <button
+                type="button"
+                class="nav-link nav-trigger"
+                :aria-expanded="openKey === item.key"
+                @click="toggleDrop(item.key)"
               >
-                <b>{{ display(child.label, false) }}</b>
-                <em v-if="child.desc">{{ display(child.desc, false) }}</em>
-              </router-link>
+                {{ display(item.label, false) }}
+                <span class="caret" aria-hidden="true">▾</span>
+              </button>
+              <div v-show="openKey === item.key" class="drop-panel" role="menu">
+                <router-link
+                  v-for="child in item.children"
+                  :key="child.path"
+                  :to="child.path"
+                  class="drop-link"
+                  role="menuitem"
+                  :class="{ 'is-active': isChildActive(child.path) }"
+                  @click="openKey = ''"
+                >
+                  <b>{{ display(child.label, false) }}</b>
+                  <em v-if="child.desc">{{ display(child.desc, false) }}</em>
+                </router-link>
+              </div>
             </div>
-          </div>
-        </template>
-      </nav>
+          </template>
+        </nav>
 
-      <div v-if="isPc" class="tools">
-        <button type="button" class="tool" @click="store.toggleScript">
-          {{ store.script === 'hant' ? display('繁／簡', false) : '繁/简' }}
-        </button>
-        <button type="button" class="tool" @click="store.toggleTheme">
-          {{ display(store.isDark ? '宣紙' : '夜空', false) }}
-        </button>
-        <button type="button" class="tool" @click="store.bumpFont(-1)">A-</button>
-        <button type="button" class="tool" @click="store.bumpFont(1)">A+</button>
-        <button type="button" class="tool" @click="handleCopy">{{ display('複製', false) }}</button>
+        <div v-if="isPc" class="tools">
+          <button type="button" class="tool" @click="store.toggleScript">
+            {{ store.script === 'hant' ? display('繁／簡', false) : '繁/简' }}
+          </button>
+          <button type="button" class="tool" @click="store.toggleTheme">
+            {{ display(store.isDark ? '宣紙' : '夜空', false) }}
+          </button>
+          <button type="button" class="tool" @click="store.bumpFont(-1)">A-</button>
+          <button type="button" class="tool" @click="store.bumpFont(1)">A+</button>
+          <button type="button" class="tool" @click="handleCopy">{{ display('複製', false) }}</button>
+        </div>
+
+        <div v-else class="tools tools-h5">
+          <button type="button" class="tool" @click="store.toggleScript">
+            {{ store.script === 'hant' ? display('繁／簡', false) : '繁/简' }}
+          </button>
+          <button type="button" class="tool" @click="store.toggleTheme">
+            {{ display(store.isDark ? '宣紙' : '夜空', false) }}
+          </button>
+          <button type="button" class="tool" @click="store.bumpFont(-1)">A-</button>
+          <button type="button" class="tool" @click="store.bumpFont(1)">A+</button>
+          <button type="button" class="tool" @click="handleCopy">{{ display('複製', false) }}</button>
+          <button
+            type="button"
+            class="burger"
+            :aria-label="display('打開菜單', false)"
+            @click="drawerOpen = true"
+          >
+            <i /><i /><i />
+          </button>
+        </div>
       </div>
-
-      <button
-        v-else
-        type="button"
-        class="burger"
-        :aria-label="display('打開菜單', false)"
-        @click="drawerOpen = true"
-      >
-        <i /><i /><i />
-      </button>
-    </div>
-    <MobileDrawer v-model="drawerOpen" />
-  </header>
+      <MobileDrawer v-model="drawerOpen" />
+    </header>
+  </teleport>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch } from 'vue';
+import { defineComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useAppStore } from '@/store/app';
 import { useDisplayText } from '@/composables/useDisplayText';
@@ -105,6 +122,19 @@ export default defineComponent({
     const drawerOpen = ref(false);
     const openKey = ref('');
     const navs = SITE_NAV;
+    const headerRef = ref<HTMLElement | null>(null);
+    const headerH = ref(58);
+    let ro: ResizeObserver | null = null;
+
+    const syncHeaderH = () => {
+      const el = headerRef.value;
+      if (!el) return;
+      const h = Math.ceil(el.getBoundingClientRect().height);
+      if (h > 0) {
+        headerH.value = h;
+        document.documentElement.style.setProperty('--zw-header-h', `${h}px`);
+      }
+    };
 
     const handleCopy = () => copySelection();
 
@@ -121,6 +151,25 @@ export default defineComponent({
       },
     );
 
+    watch(isPc, () => {
+      requestAnimationFrame(syncHeaderH);
+    });
+
+    onMounted(() => {
+      syncHeaderH();
+      if (typeof ResizeObserver !== 'undefined' && headerRef.value) {
+        ro = new ResizeObserver(() => syncHeaderH());
+        ro.observe(headerRef.value);
+      }
+      window.addEventListener('resize', syncHeaderH);
+    });
+
+    onBeforeUnmount(() => {
+      ro?.disconnect();
+      ro = null;
+      window.removeEventListener('resize', syncHeaderH);
+    });
+
     return {
       store,
       display,
@@ -133,6 +182,8 @@ export default defineComponent({
       isActive,
       isChildActive,
       toggleDrop,
+      headerRef,
+      headerH,
     };
   },
 });
@@ -140,12 +191,20 @@ export default defineComponent({
 
 <style scoped>
 .site-header {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 40;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  width: 100%;
   border-bottom: 1px solid var(--zw-line);
-  background: color-mix(in srgb, var(--zw-paper) 86%, transparent);
+  background: color-mix(in srgb, var(--zw-paper) 94%, transparent);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.site-header-spacer {
+  flex: none;
+  width: 100%;
 }
 .bar {
   display: flex;
@@ -268,7 +327,6 @@ export default defineComponent({
   color: var(--zw-primary);
 }
 .burger {
-  margin-left: auto;
   width: 42px;
   height: 42px;
   border: 1px solid var(--zw-line);
@@ -288,9 +346,35 @@ export default defineComponent({
   background: var(--zw-ink);
 }
 .is-h5 .bar {
-  padding: 10px 14px;
+  padding: 8px 12px;
+  gap: 8px;
+}
+.is-h5 .logo {
+  flex: none;
 }
 .is-h5 .logo span {
   letter-spacing: 0.14em;
+}
+.is-h5 .tools-h5 {
+  flex: 1;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+.is-h5 .tools-h5 .tool {
+  flex: none;
+  padding: 5px 6px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.is-h5 .tools-h5 .burger {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  margin-left: 2px;
 }
 </style>

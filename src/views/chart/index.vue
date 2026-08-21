@@ -3,33 +3,52 @@
     <el-tabs v-model="pageTab" class="chart-tabs">
       <el-tab-pane :label="display('生辰排盤', false)" name="chart">
     <div class="layout">
-      <section class="form-col rounded-lg border p-4" :style="cardStyle">
-        <h2 class="mb-3 font-semibold">{{ display('生辰排盤', false) }}</h2>
+      <section class="form-col rounded-lg border" :style="cardStyle">
+        <h2 class="form-title font-semibold">{{ display('生辰排盤', false) }}</h2>
         <ChartForm :loading="loading" :seed="formSeed" @submit="handleGenerate" @reset="handleReset" />
-        <p v-if="trueSolarNote" class="mt-3 text-xs" style="color: var(--zw-muted)">{{ trueSolarNote }}</p>
-        <div v-if="chart" class="mt-4 space-y-2">
-          <el-form-item :label="display('大限／流年', false)">
+        <p v-if="trueSolarNote" class="true-solar-note" style="color: var(--zw-muted)">{{ trueSolarNote }}</p>
+        <div v-if="chart" class="horoscope-block">
+          <div class="horoscope-field">
+            <div class="horoscope-label">{{ display('大限／流年', false) }}</div>
+            <SheetDatePicker
+              v-if="isMobile"
+              v-model="targetDate"
+              :title="display('大限／流年', false)"
+              :placeholder="display('選擇推運日期', false)"
+              :cancel-text="display('取消', false)"
+              :confirm-text="display('確定', false)"
+              :year-unit="display('年', false)"
+              :month-unit="display('月', false)"
+              :day-unit="display('日', false)"
+              format="loose"
+              :max-year="horoscopeMaxYear"
+              @change="handleHoroscope"
+            />
             <el-date-picker
+              v-else
               v-model="targetDate"
               type="date"
               value-format="YYYY-M-D"
+              class="horoscope-picker"
               :placeholder="display('選擇推運日期', false)"
               @change="handleHoroscope"
             />
             <p class="horoscope-hint">
               {{
                 display(
-                  '選一個公曆日期，查看該日所在大限（約十年一段）與流年，盤面宮位會標出對應大限起迄歲。預設為出生當天。',
+                  '選一個公曆日期，查看該日所在大限（約十年一段）與流年；盤面會高亮對應大限宫、流年宫，並疊加流曜。預設為出生當天。',
                   false,
                 )
               }}
             </p>
-          </el-form-item>
-          <p v-if="horoscope" class="text-sm">
-            {{ display('大限', false) }} {{ horoscope.decadalRange }}　
-            {{ display('流年', false) }} {{ horoscope.yearly }}
+          </div>
+          <p v-if="horoscope" class="horoscope-summary">
+            <span class="tag decadal-tag">{{ display('大限', false) }}</span>
+            {{ horoscope.decadalRange }}
+            <span class="tag yearly-tag">{{ display('流年', false) }}</span>
+            {{ horoscope.yearly }}
           </p>
-          <el-button @click="handleExport">{{ display('導出命盤圖片', false) }}</el-button>
+          <el-button class="export-btn" @click="handleExport">{{ display('導出命盤圖片', false) }}</el-button>
         </div>
       </section>
 
@@ -92,6 +111,7 @@ import ChartResultTabs from './components/ChartResultTabs.vue';
 import ChartPersonSummary from './components/ChartPersonSummary.vue';
 import NayinPanel from './components/NayinPanel.vue';
 import StarDialog from '@/components/StarDialog.vue';
+import SheetDatePicker from '@/components/sheet/SheetDatePicker.vue';
 import { buildChart, getHoroscope, palacesWithHoroscope, type BuiltChart, type HoroscopeView } from '@/utils/chart';
 import { computeTrueSolar } from '@/utils/trueSolar';
 import { matchPatterns } from '@/utils/patternMatch';
@@ -100,20 +120,31 @@ import { buildPalaceReadings } from '@/utils/palaceReading';
 import { useAppStore } from '@/store/app';
 import { useChartSessionStore } from '@/store/chartSession';
 import { useDisplayText } from '@/composables/useDisplayText';
+import { useDevice } from '@/composables/useDevice';
 import type { ExcerptItem, MatchedPattern } from '@/types';
 import { ElMessage } from 'element-plus';
 
 export default defineComponent({
   name: 'ChartPage',
-  components: { ChartForm, ChartBoard, ChartResultTabs, ChartPersonSummary, NayinPanel, StarDialog },
+  components: {
+    ChartForm,
+    ChartBoard,
+    ChartResultTabs,
+    ChartPersonSummary,
+    NayinPanel,
+    StarDialog,
+    SheetDatePicker,
+  },
   setup() {
     const router = useRouter();
     const store = useAppStore();
     const session = useChartSessionStore();
     const { display } = useDisplayText();
+    const { isMobile } = useDevice();
     const captureRef = ref<HTMLElement>();
     const formSeed = session.getSnapshot()?.form ?? null;
     const restoredOnce = ref(false);
+    const horoscopeMaxYear = new Date().getFullYear() + 80;
     const _data = reactive({
       pageTab: 'chart',
       loading: false,
@@ -262,6 +293,8 @@ export default defineComponent({
 
     return {
       display,
+      isMobile,
+      horoscopeMaxYear,
       captureRef,
       cardStyle,
       displayPalaces,
@@ -297,6 +330,46 @@ export default defineComponent({
   gap: 16px;
   align-items: start;
 }
+.form-col {
+  padding: 16px;
+}
+.form-title {
+  margin-bottom: 12px;
+}
+.true-solar-note {
+  margin-top: 12px;
+  font-size: 0.75em;
+  line-height: 1.55;
+}
+.horoscope-block {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--zw-line);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.horoscope-field {
+  min-width: 0;
+}
+.horoscope-label {
+  margin-bottom: 6px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--zw-ink);
+}
+.horoscope-picker {
+  width: 100%;
+  max-width: 100%;
+}
+.horoscope-picker :deep(.el-input__wrapper) {
+  width: 100%;
+}
+.layout,
+.board-col,
+.form-col {
+  min-width: 0;
+}
 .horoscope-hint {
   margin: 6px 0 0;
   font-size: 0.75em;
@@ -304,9 +377,81 @@ export default defineComponent({
   letter-spacing: 0.04em;
   color: var(--zw-muted);
 }
+.horoscope-summary {
+  font-size: 0.95em;
+  line-height: 1.7;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--zw-line);
+  background: color-mix(in srgb, var(--zw-gold) 10%, var(--zw-paper));
+}
+.horoscope-summary .tag {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.85em;
+  letter-spacing: 0.08em;
+}
+.horoscope-summary .decadal-tag {
+  color: #fff;
+  background: var(--zw-primary);
+}
+.horoscope-summary .yearly-tag {
+  margin-left: 8px;
+  color: var(--zw-ink);
+  background: color-mix(in srgb, var(--zw-gold) 70%, #fff);
+}
+.export-btn {
+  align-self: flex-start;
+}
 @media (max-width: 1100px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 767.98px) {
+  .layout {
+    gap: 14px;
+  }
+  .board-col {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  .form-col {
+    padding: 14px 14px 16px;
+    overflow-x: hidden;
+  }
+  .form-title {
+    margin-bottom: 10px;
+    font-size: 1em;
+    letter-spacing: 0.1em;
+  }
+  .true-solar-note {
+    margin-top: 10px;
+    font-size: 0.75em;
+    line-height: 1.5;
+  }
+  .horoscope-block {
+    margin-top: 14px;
+    padding-top: 14px;
+    gap: 10px;
+  }
+  .horoscope-label {
+    margin-bottom: 4px;
+    font-size: 0.92em;
+    letter-spacing: 0.06em;
+    color: var(--zw-muted);
+  }
+  .horoscope-hint {
+    margin-top: 6px;
+    font-size: 0.75em;
+    line-height: 1.5;
+  }
+  .export-btn {
+    width: 100%;
+    min-height: 38px;
   }
 }
 </style>

@@ -57,7 +57,16 @@
       </p>
       <div class="tianchi-row">
         <label class="lab" for="calib-mountain">{{ display('對準目標', false) }}</label>
-        <select id="calib-mountain" v-model="targetDeg" class="mountain-select">
+        <SheetSelect
+          v-if="isMobile"
+          id="calib-mountain"
+          v-model="targetDeg"
+          class="mountain-select"
+          :options="mountainOptions"
+          :title="display('對準目標', false)"
+          :cancel-text="display('取消', false)"
+        />
+        <select v-else id="calib-mountain" v-model="targetDeg" class="mountain-select">
           <option v-for="m in mountains" :key="m.name" :value="m.deg">
             {{ display(`${m.name}山 · ${m.dir} · ${String(m.deg).padStart(3, '0')}°`, false) }}
           </option>
@@ -133,6 +142,7 @@
 import { computed, defineComponent, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import LuopanDisk from './components/LuopanDisk.vue';
+import SheetSelect from '@/components/sheet/SheetSelect.vue';
 import { useCompassHeading } from '@/composables/useCompassHeading';
 import { useDisplayText } from '@/composables/useDisplayText';
 import { useDevice } from '@/composables/useDevice';
@@ -140,7 +150,7 @@ import { houTianAt, LUOSHU_HAN, MOUNTAINS, mountainAt, xianTianAt } from '@/util
 
 export default defineComponent({
   name: 'LuopanPage',
-  components: { LuopanDisk },
+  components: { LuopanDisk, SheetSelect },
   setup() {
     const { display } = useDisplayText();
     const { isMobile } = useDevice();
@@ -172,6 +182,13 @@ export default defineComponent({
       const d = offsetSigned.value - fineBase.value;
       return Math.max(-30, Math.min(30, Math.round(d)));
     });
+
+    const mountainOptions = computed(() =>
+      MOUNTAINS.map((m) => ({
+        label: display(`${m.name}山 · ${m.dir} · ${String(m.deg).padStart(3, '0')}°`, false),
+        value: m.deg,
+      })),
+    );
 
     const current = computed(() => mountainAt(heading.value));
     const hou = computed(() => houTianAt(heading.value));
@@ -249,6 +266,7 @@ export default defineComponent({
       mainLine,
       guaLine,
       mountains: MOUNTAINS,
+      mountainOptions,
       targetDeg,
       dialOn,
       calibrated,

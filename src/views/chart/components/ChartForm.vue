@@ -1,25 +1,65 @@
 <template>
-  <el-form ref="formRef" :model="form" label-width="92px" class="chart-form" @submit.prevent>
+  <el-form
+    ref="formRef"
+    :model="form"
+    :label-width="isMobile ? 'auto' : '92px'"
+    :label-position="isMobile ? 'top' : 'right'"
+    class="chart-form"
+    :class="{ 'is-h5-form': isMobile }"
+    @submit.prevent
+  >
     <el-form-item :label="display('公曆生辰', false)" required>
+      <SheetDatePicker
+        v-if="isMobile"
+        v-model="form.solarDate"
+        :title="display('公曆生辰', false)"
+        :placeholder="display('選擇公曆日期', false)"
+        :cancel-text="display('取消', false)"
+        :confirm-text="display('確定', false)"
+        :year-unit="display('年', false)"
+        :month-unit="display('月', false)"
+        :day-unit="display('日', false)"
+        format="loose"
+      />
       <el-date-picker
+        v-else
         v-model="form.solarDate"
         type="date"
         value-format="YYYY-M-D"
         :placeholder="display('選擇公曆日期', false)"
-        class="w-full"
+        style="width: 100%"
       />
     </el-form-item>
     <el-form-item :label="display('鐘錶時刻', false)">
+      <SheetTimePicker
+        v-if="isMobile"
+        v-model="form.clock"
+        :title="display('鐘錶時刻', false)"
+        :placeholder="display('用於真太陽時', false)"
+        :cancel-text="display('取消', false)"
+        :confirm-text="display('確定', false)"
+        :hour-unit="display('時', false)"
+        :minute-unit="display('分', false)"
+      />
       <el-time-picker
+        v-else
         v-model="form.clock"
         format="HH:mm"
         value-format="HH:mm"
         :placeholder="display('用於真太陽時', false)"
-        class="w-full"
+        style="width: 100%"
       />
     </el-form-item>
     <el-form-item :label="display('出生時辰', false)" required>
-      <el-select v-model="form.timeIndex" class="w-full">
+      <SheetSelect
+        v-if="isMobile"
+        v-model="form.timeIndex"
+        :options="timeOptions"
+        :title="display('出生時辰', false)"
+        :placeholder="display('請選擇時辰', false)"
+        :cancel-text="display('取消', false)"
+      />
+      <el-select v-else v-model="form.timeIndex" class="w-full">
         <el-option
           v-for="(label, idx) in TIME_INDEX_LABELS"
           :key="idx"
@@ -35,7 +75,18 @@
       </el-radio-group>
     </el-form-item>
     <el-form-item :label="display('出生地', false)">
+      <SheetCascader
+        v-if="isMobile"
+        v-model="form.areaPath"
+        :options="placeOptions"
+        :title="display('出生地', false)"
+        :placeholder="display('省 / 市 / 區', false)"
+        :cancel-text="display('取消', false)"
+        :confirm-text="display('確定', false)"
+        @change="handlePlace"
+      />
       <el-cascader
+        v-else
         v-model="form.areaPath"
         class="w-full"
         filterable
@@ -58,7 +109,7 @@
         }}
       </p>
     </el-form-item>
-    <div class="flex gap-2">
+    <div class="form-actions">
       <el-button type="primary" :loading="loading" @click="handleSubmit">{{ display('生成命盤', false) }}</el-button>
       <el-button @click="handleReset">{{ display('重置表單', false) }}</el-button>
     </div>
@@ -67,7 +118,7 @@
 
 <script lang="ts">
 import { computed, defineComponent, onMounted, reactive, ref, watch, type PropType } from 'vue';
-import type { CascaderOption, CascaderProps } from 'element-plus';
+import type { CascaderProps } from 'element-plus';
 import { TIME_INDEX_LABELS, clockToTimeIndex } from '@/utils/trueSolar';
 import {
   BIRTHPLACE_TREE,
@@ -77,6 +128,11 @@ import {
   type BirthplaceNode,
 } from '@/data/birthplaces';
 import { useDisplayText } from '@/composables/useDisplayText';
+import { useDevice } from '@/composables/useDevice';
+import SheetSelect from '@/components/sheet/SheetSelect.vue';
+import SheetCascader, { type SheetCascaderOption } from '@/components/sheet/SheetCascader.vue';
+import SheetDatePicker from '@/components/sheet/SheetDatePicker.vue';
+import SheetTimePicker from '@/components/sheet/SheetTimePicker.vue';
 
 export interface ChartFormValue {
   solarDate: string;
@@ -92,6 +148,7 @@ export interface ChartFormValue {
 
 export default defineComponent({
   name: 'ChartForm',
+  components: { SheetSelect, SheetCascader, SheetDatePicker, SheetTimePicker },
   props: {
     loading: { type: Boolean, default: false },
     seed: { type: Object as PropType<ChartFormValue | null>, default: null },
@@ -102,13 +159,18 @@ export default defineComponent({
   },
   setup(props, { emit }) {
     const { display } = useDisplayText();
+    const { isMobile } = useDevice();
     const formRef = ref();
     const defaults = (): ChartFormValue => {
       const place = getDefaultBirthplace();
+      const now = new Date();
+      const h = now.getHours();
+      const m = now.getMinutes();
+      const clock = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
       return {
-        solarDate: '1990-1-1',
-        clock: '12:00',
-        timeIndex: 6,
+        solarDate: `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`,
+        clock,
+        timeIndex: clockToTimeIndex(h, m),
         gender: '男',
         city: place.label,
         areaPath: [...DEFAULT_BIRTHPLACE_PATH],
@@ -119,7 +181,7 @@ export default defineComponent({
     };
     const form = reactive<ChartFormValue>(defaults());
 
-    const mapPlaceTree = (nodes: BirthplaceNode[]): CascaderOption[] =>
+    const mapPlaceTree = (nodes: BirthplaceNode[]): SheetCascaderOption[] =>
       nodes.map((n) => ({
         value: n.name,
         label: display(n.name, false),
@@ -127,6 +189,12 @@ export default defineComponent({
       }));
 
     const placeOptions = computed(() => mapPlaceTree(BIRTHPLACE_TREE));
+    const timeOptions = computed(() =>
+      TIME_INDEX_LABELS.map((label, idx) => ({
+        label: display(label, false),
+        value: idx,
+      })),
+    );
     const cascaderProps: CascaderProps = {
       expandTrigger: 'click',
     };
@@ -184,7 +252,9 @@ export default defineComponent({
       formRef,
       form,
       display,
+      isMobile,
       TIME_INDEX_LABELS,
+      timeOptions,
       placeOptions,
       cascaderProps,
       coordHint,
@@ -197,13 +267,51 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.chart-form :deep(.el-cascader) {
+.chart-form :deep(.el-cascader),
+.chart-form :deep(.el-select),
+.chart-form :deep(.el-date-editor) {
   width: 100%;
+  max-width: 100%;
+}
+.form-actions {
+  display: flex;
+  gap: 8px;
 }
 .coord-hint {
   margin: 6px 0 0;
   font-size: 12px;
+  line-height: 1.55;
   letter-spacing: 0.06em;
   color: var(--zw-muted);
+}
+.chart-form.is-h5-form :deep(.el-form-item) {
+  margin-bottom: 12px;
+}
+.chart-form.is-h5-form :deep(.el-form-item__label) {
+  margin-bottom: 0;
+  padding: 0 0 4px;
+  line-height: 1.3;
+  height: auto;
+  font-size: 0.92em;
+  letter-spacing: 0.06em;
+  color: var(--zw-muted);
+  justify-content: flex-start;
+}
+.chart-form.is-h5-form :deep(.el-form-item__content) {
+  line-height: 1.4;
+  min-width: 0;
+}
+.chart-form.is-h5-form .coord-hint {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.chart-form.is-h5-form .form-actions {
+  gap: 10px;
+  margin-top: 2px;
+}
+.chart-form.is-h5-form .form-actions .el-button {
+  flex: 1;
+  min-height: 38px;
 }
 </style>
