@@ -5,7 +5,7 @@
       <p class="lead">
         {{
           display(
-            '依出生公曆年月日時，取日柱納音為本氣，按生扶定喜用五行，自精選字庫推薦用字。可跳轉卷二納音歌原文核對；不作吉凶斷語。',
+            '依出生年月日時（可選公曆或農曆），取日柱納音為本氣，按生扶定喜用五行，自精選字庫推薦用字。可跳轉卷二納音歌原文核對；不作吉凶斷語。',
             false,
           )
         }}
@@ -13,6 +13,7 @@
     </header>
 
     <NamingForm @submit="handleSubmit" />
+    <p v-if="trueSolarNote" class="true-solar-note">{{ trueSolarNote }}</p>
 
     <template v-if="analysis">
       <NamingSummary :analysis="analysis" />
@@ -73,6 +74,7 @@ export default defineComponent({
       analysis: null as NamingAnalysis | null,
       surname: '',
       mode: 'recommend' as 'recommend' | 'pick',
+      trueSolarNote: '',
     });
 
     const handleSubmit = (payload: {
@@ -80,6 +82,7 @@ export default defineComponent({
       timeIndex: number;
       surname: string;
       gender: string;
+      trueSolarNote: string;
     }) => {
       const result = analyzeBirth({
         iso: payload.iso,
@@ -89,10 +92,12 @@ export default defineComponent({
       if (!result) {
         ElMessage.warning(display('未能推得日柱納音，請檢查日期與時辰。', false));
         _data.analysis = null;
+        _data.trueSolarNote = '';
         return;
       }
       _data.analysis = result;
       _data.surname = payload.surname;
+      _data.trueSolarNote = payload.trueSolarNote || '';
       void payload.gender;
     };
 
@@ -122,6 +127,13 @@ export default defineComponent({
   line-height: 1.7;
   color: var(--zw-ink-muted);
   font-size: 0.92rem;
+}
+.true-solar-note {
+  margin: 0.65rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--zw-muted);
+  letter-spacing: 0.04em;
 }
 .modes {
   display: flex;

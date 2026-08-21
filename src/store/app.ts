@@ -50,21 +50,49 @@ export const useAppStore = defineStore('app', () => {
     script.value = script.value === 'hans' ? 'hant' : 'hans';
   }
 
+  /**
+   * 字号极限提示：手机端触碰易触发 ElMessage 的 hover 暂停计时，导致永不关闭。
+   * 因此 duration=0 由我们定时强制 close，且未关闭前不重复弹出。
+   */
+  const FONT_TOAST_MS = 2000;
+  let fontLimitToastOpen = false;
+  let fontLimitToastTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function showFontLimitToast(hans: string, hant: string) {
+    if (fontLimitToastOpen) return;
+    fontLimitToastOpen = true;
+    const instance = ElMessage({
+      type: 'info',
+      message: script.value === 'hans' ? hans : hant,
+      duration: 0,
+      onClose: () => {
+        fontLimitToastOpen = false;
+        if (fontLimitToastTimer != null) {
+          clearTimeout(fontLimitToastTimer);
+          fontLimitToastTimer = null;
+        }
+      },
+    });
+    fontLimitToastTimer = setTimeout(() => {
+      instance.close();
+    }, FONT_TOAST_MS);
+  }
+
   function bumpFont(delta: number) {
     const next = fontSize.value + delta * 2;
     if (delta > 0 && fontSize.value >= FONT_MAX) {
-      ElMessage.info(script.value === 'hans' ? '已是最大字号' : '已是最大字號');
+      showFontLimitToast('已是最大字号', '已是最大字號');
       return;
     }
     if (delta < 0 && fontSize.value <= FONT_MIN) {
-      ElMessage.info(script.value === 'hans' ? '已是最小字号' : '已是最小字號');
+      showFontLimitToast('已是最小字号', '已是最小字號');
       return;
     }
     fontSize.value = Math.min(FONT_MAX, Math.max(FONT_MIN, next));
     if (delta > 0 && fontSize.value >= FONT_MAX) {
-      ElMessage.info(script.value === 'hans' ? '已调至最大字号' : '已調至最大字號');
+      showFontLimitToast('已调至最大字号', '已調至最大字號');
     } else if (delta < 0 && fontSize.value <= FONT_MIN) {
-      ElMessage.info(script.value === 'hans' ? '已调至最小字号' : '已調至最小字號');
+      showFontLimitToast('已调至最小字号', '已調至最小字號');
     }
   }
 

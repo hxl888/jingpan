@@ -65,7 +65,7 @@
           />
         </div>
         <p v-else class="rounded-lg border p-8 text-center" :style="cardStyle">
-          {{ display('請輸入公曆生辰後生成命盤。點擊星曜只彈出《諸星問答論》原文。解讀頁籤中的白話是卷一原句今譯，並附出處。', false) }}
+          {{ display('請輸入出生日期後生成命盤。點擊星曜只彈出《諸星問答論》原文。解讀頁籤中的白話是卷一原句今譯，並附出處。', false) }}
         </p>
         <ChartResultTabs
           v-if="chart"
@@ -182,10 +182,16 @@ export default defineComponent({
     const _methods = {
       /** 生成命盘 */
       handleGenerate(form: ChartFormValue) {
+        if (!form.solarDate || form.timeIndex === null || (form.gender !== '男' && form.gender !== '女')) {
+          ElMessage.warning(display('請完善未填寫的內容', false));
+          return;
+        }
+        const gender = form.gender;
+        const birthTimeIndex = form.timeIndex;
         _data.loading = true;
         try {
           let solarDate = form.solarDate;
-          let timeIndex = form.timeIndex;
+          let timeIndex = birthTimeIndex;
           _data.trueSolarNote = '';
           if (form.useTrueSolar && form.clock) {
             const [h, m] = form.clock.split(':').map(Number);
@@ -197,7 +203,7 @@ export default defineComponent({
           _data.chart = buildChart({
             solarDate,
             timeIndex,
-            gender: form.gender,
+            gender,
             language: store.iztroLang,
           });
           _data.targetDate = solarDate;

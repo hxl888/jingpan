@@ -36,6 +36,14 @@ export function clockToTimeIndex(hour: number, minute: number): number {
   return Math.floor((total + 1) / 2);
 }
 
+/** 时辰 → 代表性钟表时刻（取该时辰区间起点，便于双向联动） */
+export function timeIndexToClock(timeIndex: number): string {
+  const idx = Math.min(12, Math.max(0, Math.floor(timeIndex)));
+  // 与 clockToTimeIndex 对齐：0=00:00–00:59，1=01:00–02:59 … 12=23:00–23:59
+  const hour = idx === 0 ? 0 : idx === 12 ? 23 : idx * 2 - 1;
+  return `${String(hour).padStart(2, '0')}:00`;
+}
+
 export interface TrueSolarResult {
   dateStr: string;
   timeIndex: number;
