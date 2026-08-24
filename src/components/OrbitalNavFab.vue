@@ -75,11 +75,19 @@ export default defineComponent({
         : undefined,
     );
 
-    /** edgePad：主球左上角距屏幕边的最小空隙（保证整圈可展示） */
-    const edgePad = () => Math.max(8, RING_CLEAR - SIZE / 2);
+    /** 拖动：只防出屏，可贴边 */
+    const clampLoose = (l: number, t: number) => {
+      const maxL = Math.max(8, window.innerWidth - SIZE - 8);
+      const maxT = Math.max(72, window.innerHeight - SIZE - 8);
+      return {
+        left: Math.min(maxL, Math.max(8, l)),
+        top: Math.min(maxT, Math.max(72, t)),
+      };
+    };
 
-    const clamp = (l: number, t: number) => {
-      const pad = edgePad();
+    /** 初始化 / 展开：保证整圈在视口内 */
+    const clampRing = (l: number, t: number) => {
+      const pad = Math.max(8, RING_CLEAR - SIZE / 2);
       const maxL = Math.max(pad, window.innerWidth - SIZE - pad);
       const maxT = Math.max(Math.max(72, pad), window.innerHeight - SIZE - pad);
       return {
@@ -89,13 +97,14 @@ export default defineComponent({
     };
 
     const placeDefault = () => {
-      const pad = edgePad();
+      const pad = Math.max(8, RING_CLEAR - SIZE / 2);
       try {
         const raw = sessionStorage.getItem(POS_KEY);
         if (raw) {
           const saved = JSON.parse(raw) as { left?: number; top?: number };
           if (typeof saved.left === 'number' && typeof saved.top === 'number') {
-            const next = clamp(saved.left, saved.top);
+            // 恢复拖动位置：不强制整圈可见
+            const next = clampLoose(saved.left, saved.top);
             left.value = next.left;
             top.value = next.top;
             placed.value = true;
@@ -105,8 +114,8 @@ export default defineComponent({
       } catch {
         /* ignore */
       }
-      // 右下内侧：整圈展开都能落在视口内，并略高于「頂」
-      const next = clamp(
+      // 首次默认：右下内侧，整圈可展
+      const next = clampRing(
         window.innerWidth - SIZE - pad,
         window.innerHeight - SIZE - pad,
       );
@@ -123,9 +132,9 @@ export default defineComponent({
       }
     };
 
-    /** 展开前再夹紧一次，避免旧位置贴边导致半圈出屏 */
+    /** 展开前夹到整圈可见（不限制拖动过程） */
     const ensureRingVisible = () => {
-      const next = clamp(left.value, top.value);
+      const next = clampRing(left.value, top.value);
       left.value = next.left;
       top.value = next.top;
     };
@@ -178,7 +187,7 @@ export default defineComponent({
         open.value = false;
       }
       if (!moved.value) return;
-      const next = clamp(origin.left + dx, origin.top + dy);
+      const next = clampLoose(origin.left + dx, origin.top + dy);
       left.value = next.left;
       top.value = next.top;
     };
@@ -202,7 +211,7 @@ export default defineComponent({
 
     const onResize = () => {
       if (!placed.value) return;
-      const next = clamp(left.value, top.value);
+      const next = clampLoose(left.value, top.value);
       left.value = next.left;
       top.value = next.top;
     };
