@@ -72,7 +72,12 @@
           :readings="readings"
           :patterns="patterns"
           :excerpts="excerpts"
+          :ai-loading="aiLoading"
+          :ai-error="aiError"
+          :ai-content="aiContent"
+          :ai-configured="aiConfigured"
           @goto="handleGoto"
+          @generate-ai="handleAiGenerate"
         />
         <ChartPersonSummary
           v-if="chart"
@@ -117,6 +122,8 @@ import { computeTrueSolar } from '@/utils/trueSolar';
 import { matchPatterns } from '@/utils/patternMatch';
 import { extractExcerpts } from '@/utils/excerpt';
 import { buildPalaceReadings } from '@/utils/palaceReading';
+import { fetchChartAiReading, isChartAiConfigured } from '@/api/chartAi';
+import { buildChartAiPayload, hasChartAiMaterial } from '@/utils/chartAiPayload';
 import { useAppStore } from '@/store/app';
 import { useChartSessionStore } from '@/store/chartSession';
 import { useDisplayText } from '@/composables/useDisplayText';
@@ -156,7 +163,12 @@ export default defineComponent({
       targetDate: '',
       horoscope: null as HoroscopeView | null,
       trueSolarNote: '',
+      aiLoading: false,
+      aiError: '',
+      aiContent: '',
     });
+
+    const aiConfigured = isChartAiConfigured();
 
     const displayPalaces = computed(() => {
       if (!_data.chart) return [];
@@ -172,6 +184,11 @@ export default defineComponent({
     };
 
     const _inner = {
+      clearAiState() {
+        _data.aiLoading = false;
+        _data.aiError = '';
+        _data.aiContent = '';
+      },
       refreshDerived() {
         if (!_data.chart) return;
         _data.patterns = matchPatterns(_data.chart);
@@ -188,6 +205,7 @@ export default defineComponent({
         }
         const gender = form.gender;
         const birthTimeIndex = form.timeIndex;
+        _inner.clearAiState();
         _data.loading = true;
         try {
           let solarDate = form.solarDate;
@@ -257,8 +275,36 @@ export default defineComponent({
         _data.trueSolarNote = '';
         _data.dialogVisible = false;
         _data.activeStar = '';
+        _inner.clearAiState();
         session.clearSnapshot();
         ElMessage.success(display('已重置表單與命盤', false));
+      },
+      async handleAiGenerate() {
+        if (!_data.chart || _data.aiLoading) return;
+        if (!aiConfigured) {
+          ElMessage.warning(display('AI 研習服務尚未配置', false));
+          return;
+        }
+        const payload = buildChartAiPayload({
+          chart: _data.chart,
+          palaces: displayPalaces.value,
+          patterns: _data.patterns,
+          excerpts: _data.excerpts,
+          readings: readings.value,
+        });
+        if (!hasChartAiMaterial(payload)) {
+          ElMessage.warning(display('本盤材料不足，無法生成 AI 研習說明', false));
+          return;
+        }
+        _data.aiLoading = true;
+        _data.aiError = '';
+        try {
+          _data.aiContent = await fetchChartAiReading(payload);
+        } catch (err) {
+          _data.aiError = err instanceof Error ? err.message : display('生成失敗，請稍後重試', false);
+        } finally {
+          _data.aiLoading = false;
+        }
       },
     };
 
@@ -306,6 +352,7 @@ export default defineComponent({
       displayPalaces,
       readings,
       formSeed,
+      aiConfigured,
       ...toRefs(_data),
       ..._methods,
     };

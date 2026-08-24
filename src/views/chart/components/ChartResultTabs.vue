@@ -1,5 +1,5 @@
 <template>
-  <section class="result-tabs rounded-lg border mt-4" :style="panelStyle">
+  <section ref="tabsRootRef" class="result-tabs rounded-lg border mt-4" :style="panelStyle">
     <el-tabs v-model="activeTab">
       <el-tab-pane :label="display('命盤解讀', false)" name="reading">
         <p class="note">
@@ -75,32 +75,83 @@
       <el-tab-pane :label="display('古籍原文', false)" name="excerpt">
         <ExcerptPanel :items="excerpts" @goto="$emit('goto', $event)" />
       </el-tab-pane>
+
+      <el-tab-pane :label="display('AI 研習', false)" name="ai">
+        <p class="note ai-disclaimer">
+          {{
+            display(
+              '以下為 AI 依本盤已命中的卷一摘句、格局歌訣所作白話整理，僅供對照研讀，不構成吉凶裁決。請點「命盤解讀」「古籍原文」核對站內出處。',
+              false,
+            )
+          }}
+        </p>
+        <p v-if="!aiConfigured" class="note">
+          {{ display('AI 研習服務尚未配置，暫不可用。', false) }}
+        </p>
+        <template v-else>
+          <div v-if="!aiContent && !aiLoading" class="ai-actions">
+            <el-button type="primary" :disabled="aiLoading" @click="$emit('generate-ai')">
+              {{ display('生成研習說明', false) }}
+            </el-button>
+          </div>
+          <div v-if="aiLoading" class="ai-loading">
+            <el-icon class="is-loading"><Loading /></el-icon>
+            <span>{{ display('正在整理本盤材料…', false) }}</span>
+          </div>
+          <p v-if="aiError" class="ai-error">{{ aiError }}</p>
+          <div v-if="aiError && !aiLoading" class="ai-actions">
+            <el-button type="primary" plain @click="$emit('generate-ai')">
+              {{ display('重試', false) }}
+            </el-button>
+          </div>
+          <article v-if="aiContent" class="ai-result">
+            <div class="ai-toolbar">
+              <el-button size="small" plain @click="copyAi">{{ display('複製全文', false) }}</el-button>
+              <el-button size="small" plain :disabled="aiLoading" @click="$emit('generate-ai')">
+                {{ display('重新生成', false) }}
+              </el-button>
+            </div>
+            <pre class="ai-body">{{ display(aiContent, false) }}</pre>
+          </article>
+        </template>
+      </el-tab-pane>
     </el-tabs>
   </section>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, type PropType } from 'vue';
+import { Loading } from '@element-plus/icons-vue';
 import type { ExcerptItem, MatchedPattern, PalaceReading } from '@/types';
 import { useDisplayText } from '@/composables/useDisplayText';
+import { useCenterScrollTabs } from '@/composables/useCenterScrollTabs';
+import { copyText } from '@/utils/copy';
 import ChartLegend from './ChartLegend.vue';
 import ExcerptPanel from './ExcerptPanel.vue';
 import { SANFANG_BAIKE, SANFANG_DEF, toReadingQuote } from '@/data/readingQuotes';
 
 export default defineComponent({
   name: 'ChartResultTabs',
-  components: { ChartLegend, ExcerptPanel },
+  components: { ChartLegend, ExcerptPanel, Loading },
   props: {
     readings: { type: Array as PropType<PalaceReading[]>, default: () => [] },
     patterns: { type: Array as PropType<MatchedPattern[]>, default: () => [] },
     excerpts: { type: Array as PropType<ExcerptItem[]>, default: () => [] },
+    aiLoading: { type: Boolean, default: false },
+    aiError: { type: String, default: '' },
+    aiContent: { type: String, default: '' },
+    aiConfigured: { type: Boolean, default: false },
   },
   emits: {
     goto: (_id: string) => true,
+    'generate-ai': () => true,
   },
-  setup() {
+  setup(props) {
     const { display } = useDisplayText();
     const activeTab = ref('reading');
+    const tabsRootRef = ref<HTMLElement>();
+    const tabNames = ['reading', 'pattern', 'excerpt', 'ai'] as const;
+    useCenterScrollTabs(tabsRootRef, activeTab, tabNames);
     const panelStyle = {
       background: 'var(--zw-paper)',
       borderColor: 'var(--zw-line)',
@@ -112,11 +163,16 @@ export default defineComponent({
         .map((s) => s.trim())
         .filter(Boolean)
         .join('\n');
+    const copyAi = () => {
+      void copyText(props.aiContent);
+    };
     return {
       display,
       activeTab,
+      tabsRootRef,
       panelStyle,
       formatSong,
+      copyAi,
       sanFangDef: toReadingQuote(SANFANG_DEF),
       sanFangBaike: toReadingQuote(SANFANG_BAIKE),
     };
@@ -211,5 +267,47 @@ export default defineComponent({
 }
 .result-tabs :deep(.el-tabs__active-bar) {
   background: var(--zw-gold);
+}
+.ai-disclaimer {
+  border-left: 3px solid var(--zw-gold);
+  padding-left: 10px;
+}
+.ai-actions {
+  margin-bottom: 12px;
+}
+.ai-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85em;
+  color: var(--zw-muted);
+  margin-bottom: 12px;
+}
+.ai-error {
+  font-size: 0.85em;
+  color: #b42318;
+  margin-bottom: 12px;
+  line-height: 1.7;
+}
+.ai-result {
+  margin-top: 8px;
+}
+.ai-toolbar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.ai-body {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 0.9em;
+  line-height: 1.85;
+  color: var(--zw-primary);
+  background: var(--zw-quote);
+  border: 1px solid var(--zw-line);
+  padding: 14px 16px;
 }
 </style>

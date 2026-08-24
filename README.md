@@ -66,3 +66,27 @@ npm run build:data
 ## 约束
 
 命盘只展示古籍原文与格局原始歌诀；庙旺落陷、四化、大限流年由公开安星算法计算。卷二、卷三仅供站内阅读，不参与排盘摘句匹配。
+
+## 排盘 AI 研习（可选）
+
+「AI 研习」页签经薄代理调用 Cloudflare Workers AI，仅整理本盘已命中的卷一材料，不编吉凶断语。
+
+### 前端
+
+复制 `.env.example` 为 `.env`，设置：
+
+```bash
+VITE_CHART_AI_API=http://38.55.194.234:8787/api/chart-ai-reading
+```
+
+生产构建会打入该地址；未配置时页签提示服务不可用。
+
+### 服务端代理
+
+```bash
+cp server/.env.example server/.env
+# 填入 CF_ACCOUNT_ID、CF_API_TOKEN（勿提交 Git）
+node server/chart-ai-proxy.mjs
+```
+
+默认监听 `8787`，接口 `POST /api/chart-ai-reading`。可用 `nohup node server/chart-ai-proxy.mjs &` 或 systemd 常驻。建议后续用 Nginx 将 `/api/chart-ai-reading` 反代到该端口，避免跨域。
