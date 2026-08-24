@@ -54,7 +54,7 @@ export const useAppStore = defineStore('app', () => {
    * 字号极限提示：手机端触碰易触发 ElMessage 的 hover 暂停计时，导致永不关闭。
    * 因此 duration=0 由我们定时强制 close，且未关闭前不重复弹出。
    */
-  const FONT_TOAST_MS = 2000;
+  const FONT_TOAST_MS = 800;
   let fontLimitToastOpen = false;
   let fontLimitToastTimer: ReturnType<typeof setTimeout> | null = null;
 
