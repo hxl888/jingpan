@@ -61,3 +61,33 @@ export function isNavGroupActive(item: NavItem, routePath: string): boolean {
   if (item.path) return isNavChildActive(item.path, routePath);
   return (item.children ?? []).some((c) => isNavChildActive(c.path, routePath));
 }
+
+/** 环绕浮球菜单：展平后的叶子项 */
+export interface OrbitalNavItem {
+  path: string;
+  label: string;
+  tag: string;
+}
+
+/** 将 SITE_NAV 展平为环绕菜单项（单字 tag） */
+export function flattenOrbitalNav(): OrbitalNavItem[] {
+  const items: OrbitalNavItem[] = [];
+  for (const nav of SITE_NAV) {
+    if (nav.path) {
+      items.push({
+        path: nav.path,
+        label: nav.label,
+        tag: nav.tag || nav.label.slice(0, 1),
+      });
+      continue;
+    }
+    for (const child of nav.children ?? []) {
+      items.push({
+        path: child.path,
+        label: child.label,
+        tag: child.tag || child.label.slice(0, 1),
+      });
+    }
+  }
+  return items;
+}

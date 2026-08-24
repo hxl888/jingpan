@@ -14,6 +14,7 @@
       <RouteSkeleton v-if="isLoading" :type="skeletonType" />
     </main>
     <AppFooter />
+    <OrbitalNavFab />
     <BackToTop />
   </div>
 </template>
@@ -23,6 +24,7 @@ import { defineComponent } from 'vue';
 import AppHeader from '@/components/AppHeader.vue';
 import AppFooter from '@/components/AppFooter.vue';
 import BackToTop from '@/components/BackToTop.vue';
+import OrbitalNavFab from '@/components/OrbitalNavFab.vue';
 import RouteProgressBar from '@/components/RouteProgressBar.vue';
 import RouteSkeleton from '@/components/RouteSkeleton.vue';
 import { useDevice } from '@/composables/useDevice';
@@ -34,6 +36,7 @@ export default defineComponent({
     AppHeader,
     AppFooter,
     BackToTop,
+    OrbitalNavFab,
     RouteProgressBar,
     RouteSkeleton,
   },

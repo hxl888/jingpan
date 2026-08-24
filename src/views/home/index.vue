@@ -74,12 +74,76 @@
       </section>
 
       <section class="h5-quick">
-        <router-link to="/chart" class="q">{{ display('排盤', false) }}</router-link>
-        <router-link to="/book" class="q">{{ display('古籍', false) }}</router-link>
-        <router-link to="/star-dict" class="q">{{ display('星曜', false) }}</router-link>
-        <router-link to="/pattern-dict" class="q">{{ display('格局', false) }}</router-link>
-        <router-link to="/luopan" class="q">{{ display('羅盤', false) }}</router-link>
-        <router-link to="/almanac" class="q">{{ display('黃曆', false) }}</router-link>
+        <router-link to="/chart" class="q">
+          <span class="q-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="3.5" y="3.5" width="17" height="17" rx="2" stroke="currentColor" stroke-width="1.4" />
+              <path d="M12 3.5v17M3.5 12h17" stroke="currentColor" stroke-width="1.2" />
+            </svg>
+          </span>
+          <span class="q-label">{{ display('排盤', false) }}</span>
+        </router-link>
+        <router-link to="/book" class="q">
+          <span class="q-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M5 5.5c1.6-.9 3.4-1.3 5.2-.7V19c-1.8-.6-3.6-.2-5.2.7V5.5Z"
+                stroke="currentColor"
+                stroke-width="1.4"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M19 5.5c-1.6-.9-3.4-1.3-5.2-.7V19c1.8-.6 3.6-.2 5.2.7V5.5Z"
+                stroke="currentColor"
+                stroke-width="1.4"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="q-label">{{ display('古籍', false) }}</span>
+        </router-link>
+        <router-link to="/star-dict" class="q">
+          <span class="q-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 3.5l1.7 5.2h5.5l-4.4 3.2 1.7 5.3L12 14.2l-4.5 3 1.7-5.3-4.4-3.2h5.5L12 3.5Z"
+                stroke="currentColor"
+                stroke-width="1.3"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+          <span class="q-label">{{ display('星曜', false) }}</span>
+        </router-link>
+        <router-link to="/pattern-dict" class="q">
+          <span class="q-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M12 3.5 20.5 12 12 20.5 3.5 12 12 3.5Z" stroke="currentColor" stroke-width="1.4" />
+              <circle cx="12" cy="12" r="2.2" stroke="currentColor" stroke-width="1.3" />
+            </svg>
+          </span>
+          <span class="q-label">{{ display('格局', false) }}</span>
+        </router-link>
+        <router-link to="/luopan" class="q">
+          <span class="q-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="8.2" stroke="currentColor" stroke-width="1.4" />
+              <circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.2" />
+              <path d="M12 4.2v2.2M12 17.6v2.2M4.2 12h2.2M17.6 12h2.2" stroke="currentColor" stroke-width="1.3" />
+            </svg>
+          </span>
+          <span class="q-label">{{ display('羅盤', false) }}</span>
+        </router-link>
+        <router-link to="/almanac" class="q">
+          <span class="q-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <rect x="4" y="5" width="16" height="15" rx="2" stroke="currentColor" stroke-width="1.4" />
+              <path d="M8 3.5v3M16 3.5v3M4 10h16" stroke="currentColor" stroke-width="1.3" />
+              <path d="M8 13.5h2.5M13.5 13.5H16M8 17h2.5" stroke="currentColor" stroke-width="1.3" />
+            </svg>
+          </span>
+          <span class="q-label">{{ display('黃曆', false) }}</span>
+        </router-link>
       </section>
 
       <section class="h5-card star-h5">
@@ -337,7 +401,7 @@ h1 {
 /* ===== H5 ===== */
 .hero-h5 {
   min-height: auto;
-  padding: 108px 18px 28px;
+  padding: 108px 18px 36px;
   overflow: hidden;
 }
 .h5-bagua {
@@ -373,18 +437,47 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  padding: 0 14px 12px;
+  margin-top: 8px;
+  padding: 16px 14px 18px;
 }
 .h5-quick .q {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
   text-align: center;
   text-decoration: none;
   color: var(--zw-ink);
   border: 1px solid var(--zw-line);
   background: var(--zw-paper);
-  padding: 14px 0;
+  padding: 16px 0;
   letter-spacing: 0.16em;
   border-radius: 10px;
   font-size: 14px;
+}
+.h5-quick .q-label {
+  position: relative;
+  z-index: 1;
+  line-height: 1.2;
+}
+.h5-quick .q-icon {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 0;
+  color: var(--zw-primary);
+  opacity: 0.1;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+.h5-quick .q-icon svg {
+  width: 52px;
+  height: 52px;
+  display: block;
+}
+.h5-quick .q:active .q-icon {
+  opacity: 0.16;
 }
 .h5-card {
   margin: 0 14px 12px;
