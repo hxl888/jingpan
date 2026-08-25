@@ -48,7 +48,9 @@
             <span class="tag yearly-tag">{{ display('流年', false) }}</span>
             {{ horoscope.yearly }}
           </p>
-          <el-button class="export-btn" @click="handleExport">{{ display('導出命盤圖片', false) }}</el-button>
+          <el-button class="export-btn" :loading="exporting" :disabled="exporting" @click="handleExport">
+            {{ display('導出命盤圖片', false) }}
+          </el-button>
         </div>
       </section>
 
@@ -72,6 +74,13 @@
           :readings="readings"
           :patterns="patterns"
           :excerpts="excerpts"
+          :five-elements-class="chart.fiveElementsClass"
+          :soul="chart.soul"
+          :body="chart.body"
+          :gender="chart.gender"
+          :lunar-date="chart.lunarDate"
+          :chinese-date="chart.chineseDate"
+          :horoscope="horoscope"
           :ai-loading="aiLoading"
           :ai-error="aiError"
           :ai-content="aiContent"
@@ -140,6 +149,7 @@ export default defineComponent({
     const _data = reactive({
       pageTab: 'chart',
       loading: false,
+      exporting: false,
       chart: null as BuiltChart | null,
       patterns: [] as MatchedPattern[],
       excerpts: [] as ExcerptItem[],
@@ -236,7 +246,10 @@ export default defineComponent({
         }
       },
       async handleExport() {
-        if (!captureRef.value) return;
+        if (!captureRef.value || _data.exporting) return;
+        const scrollX = window.scrollX;
+        const scrollY = window.scrollY;
+        _data.exporting = true;
         try {
           const canvas = await captureElement(captureRef.value);
           const a = document.createElement('a');
@@ -245,6 +258,9 @@ export default defineComponent({
           a.click();
         } catch (err) {
           ElMessage.error(err instanceof Error ? err.message : '導出失敗');
+        } finally {
+          _data.exporting = false;
+          window.scrollTo(scrollX, scrollY);
         }
       },
       handleGoto(id: string) {
@@ -361,6 +377,7 @@ export default defineComponent({
 }
 .nayin-wrap {
   max-width: 720px;
+  margin: 0 auto;
 }
 .layout {
   display: grid;

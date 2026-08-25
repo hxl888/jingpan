@@ -1,12 +1,6 @@
 <template>
-  <div class="chart-board-wrap" @wheel="handleWheel">
-    <div
-      ref="boardRef"
-      class="chart-board"
-      :style="boardStyle"
-      @touchstart="handleTouchStart"
-      @touchmove="handleTouchMove"
-    >
+  <div class="chart-board-wrap">
+    <div class="chart-board">
       <div
         v-for="palace in palaces"
         :key="palace.earthlyBranch"
@@ -77,11 +71,10 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref, type PropType } from 'vue';
+import { defineComponent, type PropType } from 'vue';
 import type { ChartPalace } from '@/types';
 import { BRANCH_GRID, BRIGHTNESS_CLASS, MUTAGEN_CLASS } from '@/utils/chart';
 import { useDisplayText } from '@/composables/useDisplayText';
-import { useDevice } from '@/composables/useDevice';
 import starData from '@/data/starDict.json';
 import type { StarEntry } from '@/types';
 
@@ -100,17 +93,7 @@ export default defineComponent({
   },
   setup() {
     const { display } = useDisplayText();
-    const { isMobile } = useDevice();
-    const boardRef = ref<HTMLElement>();
-    const scale = ref(1);
-    const dict = (starData as { dict: Record<string, StarEntry>; alias: Record<string, string> });
-    let lastDist = 0;
-
-    const boardStyle = computed(() => {
-      // H5 盘面已 CSS 铺满，不再 scale，避免拦截滚动
-      if (isMobile.value) return undefined;
-      return { transform: `scale(${scale.value})`, transformOrigin: 'center center' };
-    });
+    const dict = starData as { dict: Record<string, StarEntry>; alias: Record<string, string> };
 
     const palaceStyle = (branch: string) => {
       const pos = BRANCH_GRID[branch];
@@ -132,49 +115,13 @@ export default defineComponent({
       return (entry.answer || entry.xiYiSaid || entry.fullText).slice(0, 48);
     };
 
-    const handleWheel = (e: WheelEvent) => {
-      if (isMobile.value) return;
-      e.preventDefault();
-      scale.value = Math.min(2.2, Math.max(0.6, scale.value + (e.deltaY > 0 ? -0.08 : 0.08)));
-    };
-
-    const distance = (e: TouchEvent) => {
-      if (e.touches.length < 2) return 0;
-      const a = e.touches[0];
-      const b = e.touches[1];
-      return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
-    };
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (isMobile.value) return;
-      if (e.touches.length === 2) lastDist = distance(e);
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      // 单指滑动必须放行，否则 H5 页面无法滚动
-      if (isMobile.value || e.touches.length !== 2) return;
-      e.preventDefault();
-      const dist = distance(e);
-      if (!lastDist) {
-        lastDist = dist;
-        return;
-      }
-      scale.value = Math.min(2.2, Math.max(0.6, scale.value * (dist / lastDist)));
-      lastDist = dist;
-    };
-
     return {
       display,
-      boardRef,
-      boardStyle,
       palaceStyle,
       brightnessClass,
       mutagenClass,
       shaClass,
       previewOf,
-      handleWheel,
-      handleTouchStart,
-      handleTouchMove,
     };
   },
 });
@@ -182,7 +129,7 @@ export default defineComponent({
 
 <style scoped>
 .chart-board-wrap {
-  overflow: auto;
+  overflow: visible;
   touch-action: pan-y;
   padding: 8px;
   width: 100%;
@@ -191,11 +138,13 @@ export default defineComponent({
 }
 .chart-board {
   display: grid;
-  grid-template-columns: repeat(4, minmax(110px, 1fr));
-  grid-template-rows: repeat(4, minmax(110px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
   gap: 4px;
-  min-width: 520px;
-  min-height: 520px;
+  width: 100%;
+  aspect-ratio: 1;
+  min-width: 0;
+  min-height: 0;
   box-sizing: border-box;
 }
 .palace {
@@ -203,13 +152,12 @@ export default defineComponent({
   background: var(--zw-paper);
   padding: 6px;
   font-size: 12px;
-  min-height: 110px;
+  min-height: 0;
   min-width: 0;
   overflow: hidden;
   box-sizing: border-box;
 }
 .palace.is-ming {
-  /* 用 border 代替 inset box-shadow，html2canvas 对后者易出缝/错位 */
   border: 2px solid var(--zw-gold);
   padding: 5px;
 }
