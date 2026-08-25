@@ -4,15 +4,49 @@ from __future__ import annotations
 
 import os
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from urllib import error, request
 
 ROOT = os.environ.get("JINGPAN_ROOT", "/var/www/jingpan")
 HOST = os.environ.get("JINGPAN_HOST", "0.0.0.0")
 PORT = int(os.environ.get("JINGPAN_PORT", "80"))
+CHART_AI_UPSTREAM = os.environ.get(
+    "JINGPAN_CHART_AI_UPSTREAM", "http://127.0.0.1:8787/api/chart-ai-reading"
+)
 
 
 class SpaHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
+
+    def _api_path(self) -> str:
+        return self.path.split("?", 1)[0]
+
+    def _proxy_chart_ai(self) -> None:
+        length = int(self.headers.get("Content-Length", "0") or 0)
+        body = self.rfile.read(length) if length else b""
+        headers = {"Content-Type": self.headers.get("Content-Type", "application/json")}
+        req = request.Request(CHART_AI_UPSTREAM, data=body, headers=headers, method=self.command)
+        try:
+            with request.urlopen(req, timeout=120) as upstream:
+                payload = upstream.read()
+                self.send_response(upstream.status)
+                for key, val in upstream.headers.items():
+                    if key.lower() in {"content-type", "access-control-allow-origin"}:
+                        self.send_header(key, val)
+                self.end_headers()
+                self.wfile.write(payload)
+        except error.HTTPError as exc:
+            payload = exc.read()
+            self.send_response(exc.code)
+            self.send_header("Content-Type", exc.headers.get("Content-Type", "application/json"))
+            self.end_headers()
+            self.wfile.write(payload)
+        except Exception as exc:  # noqa: BLE001
+            msg = json_error(str(exc))
+            self.send_response(502)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(msg)
 
     def _rewrite_to_index_if_needed(self) -> None:
         raw = self.path.split("?", 1)[0].split("#", 1)[0]
@@ -25,6 +59,16 @@ class SpaHandler(SimpleHTTPRequestHandler):
         elif not os.path.isfile(local):
             self.path = "/index.html"
 
+    def do_OPTIONS(self):  # noqa: N802
+        if self._api_path() == "/api/chart-ai-reading":
+            return self._proxy_chart_ai()
+        self.send_error(404)
+
+    def do_POST(self):  # noqa: N802
+        if self._api_path() == "/api/chart-ai-reading":
+            return self._proxy_chart_ai()
+        self.send_error(405)
+
     def do_GET(self):  # noqa: N802
         self._rewrite_to_index_if_needed()
         return SimpleHTTPRequestHandler.do_GET(self)
@@ -36,6 +80,12 @@ class SpaHandler(SimpleHTTPRequestHandler):
     def log_message(self, fmt: str, *args) -> None:
         sys_stderr = __import__("sys").stderr
         sys_stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
+
+
+def json_error(message: str) -> bytes:
+    import json
+
+    return json.dumps({"error": message}, ensure_ascii=False).encode("utf-8")
 
 
 def main() -> None:

@@ -76,17 +76,23 @@ npm run build:data
 复制 `.env.example` 为 `.env`，设置：
 
 ```bash
-VITE_CHART_AI_API=http://38.55.194.234:8787/api/chart-ai-reading
+VITE_CHART_AI_API=/api/chart-ai-reading
 ```
 
-生产构建会打入该地址；未配置时页签提示服务不可用。
+生产环境经 SPA 服务把 `/api/chart-ai-reading` 反代到本机 `8787` 端口，无需跨域。
 
 ### 服务端代理
 
 ```bash
 cp server/.env.example server/.env
 # 填入 CF_ACCOUNT_ID、CF_API_TOKEN（勿提交 Git）
-node server/chart-ai-proxy.mjs
+bash scripts/deploy-chart-ai.sh
 ```
 
-默认监听 `8787`，接口 `POST /api/chart-ai-reading`。可用 `nohup node server/chart-ai-proxy.mjs &` 或 systemd 常驻。建议后续用 Nginx 将 `/api/chart-ai-reading` 反代到该端口，避免跨域。
+或手动：
+
+```bash
+python3 server/chart_ai_proxy.py   # 本地开发，默认 127.0.0.1:8787
+```
+
+生产使用 `scripts/chart-ai-proxy.service`（Python，无需 Node）。`scripts/spa-server.py` 已支持同源 API 转发。

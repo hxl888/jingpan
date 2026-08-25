@@ -72,17 +72,6 @@
           :readings="readings"
           :patterns="patterns"
           :excerpts="excerpts"
-          :ai-loading="aiLoading"
-          :ai-error="aiError"
-          :ai-content="aiContent"
-          :ai-configured="aiConfigured"
-          @goto="handleGoto"
-          @generate-ai="handleAiGenerate"
-        />
-        <ChartPersonSummary
-          v-if="chart"
-          :readings="readings"
-          :patterns="patterns"
           :five-elements-class="chart.fiveElementsClass"
           :soul="chart.soul"
           :body="chart.body"
@@ -90,7 +79,12 @@
           :lunar-date="chart.lunarDate"
           :chinese-date="chart.chineseDate"
           :horoscope="horoscope"
+          :ai-loading="aiLoading"
+          :ai-error="aiError"
+          :ai-content="aiContent"
+          :ai-configured="aiConfigured"
           @goto="handleGoto"
+          @generate-ai="handleAiGenerate"
         />
       </section>
     </div>
@@ -113,7 +107,6 @@ import { captureElement } from '@/utils/captureHtml';
 import ChartForm, { type ChartFormValue } from './components/ChartForm.vue';
 import ChartBoard from './components/ChartBoard.vue';
 import ChartResultTabs from './components/ChartResultTabs.vue';
-import ChartPersonSummary from './components/ChartPersonSummary.vue';
 import NayinPanel from './components/NayinPanel.vue';
 import StarDialog from '@/components/StarDialog.vue';
 import SheetDatePicker from '@/components/sheet/SheetDatePicker.vue';
@@ -137,7 +130,6 @@ export default defineComponent({
     ChartForm,
     ChartBoard,
     ChartResultTabs,
-    ChartPersonSummary,
     NayinPanel,
     StarDialog,
     SheetDatePicker,

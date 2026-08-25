@@ -76,6 +76,21 @@
         <ExcerptPanel :items="excerpts" @goto="$emit('goto', $event)" />
       </el-tab-pane>
 
+      <el-tab-pane :label="display('本盤彙總', false)" name="summary">
+        <ChartPersonSummary
+          :readings="readings"
+          :patterns="patterns"
+          :five-elements-class="fiveElementsClass"
+          :soul="soul"
+          :body="body"
+          :gender="gender"
+          :lunar-date="lunarDate"
+          :chinese-date="chineseDate"
+          :horoscope="horoscope"
+          @goto="$emit('goto', $event)"
+        />
+      </el-tab-pane>
+
       <el-tab-pane :label="display('AI 研習', false)" name="ai">
         <p class="note ai-disclaimer">
           {{
@@ -123,20 +138,29 @@
 import { defineComponent, ref, type PropType } from 'vue';
 import { Loading } from '@element-plus/icons-vue';
 import type { ExcerptItem, MatchedPattern, PalaceReading } from '@/types';
+import type { HoroscopeView } from '@/utils/chart';
 import { useDisplayText } from '@/composables/useDisplayText';
 import { useCenterScrollTabs } from '@/composables/useCenterScrollTabs';
 import { copyText } from '@/utils/copy';
 import ChartLegend from './ChartLegend.vue';
+import ChartPersonSummary from './ChartPersonSummary.vue';
 import ExcerptPanel from './ExcerptPanel.vue';
 import { SANFANG_BAIKE, SANFANG_DEF, toReadingQuote } from '@/data/readingQuotes';
 
 export default defineComponent({
   name: 'ChartResultTabs',
-  components: { ChartLegend, ExcerptPanel, Loading },
+  components: { ChartLegend, ChartPersonSummary, ExcerptPanel, Loading },
   props: {
     readings: { type: Array as PropType<PalaceReading[]>, default: () => [] },
     patterns: { type: Array as PropType<MatchedPattern[]>, default: () => [] },
     excerpts: { type: Array as PropType<ExcerptItem[]>, default: () => [] },
+    fiveElementsClass: { type: String, default: '' },
+    soul: { type: String, default: '' },
+    body: { type: String, default: '' },
+    gender: { type: String, default: '' },
+    lunarDate: { type: String, default: '' },
+    chineseDate: { type: String, default: '' },
+    horoscope: { type: Object as PropType<HoroscopeView | null>, default: null },
     aiLoading: { type: Boolean, default: false },
     aiError: { type: String, default: '' },
     aiContent: { type: String, default: '' },
@@ -150,7 +174,7 @@ export default defineComponent({
     const { display } = useDisplayText();
     const activeTab = ref('reading');
     const tabsRootRef = ref<HTMLElement>();
-    const tabNames = ['reading', 'pattern', 'excerpt', 'ai'] as const;
+    const tabNames = ['reading', 'pattern', 'excerpt', 'summary', 'ai'] as const;
     useCenterScrollTabs(tabsRootRef, activeTab, tabNames);
     const panelStyle = {
       background: 'var(--zw-paper)',

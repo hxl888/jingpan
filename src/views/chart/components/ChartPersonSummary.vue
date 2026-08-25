@@ -1,6 +1,5 @@
 <template>
-  <section class="summary rounded-lg border mt-4" :style="panelStyle">
-    <h2>{{ display('本盤彙總', false) }}</h2>
+  <section class="summary">
     <p class="note">
       {{
         display(
@@ -96,11 +95,6 @@ export default defineComponent({
   },
   setup(props) {
     const { display } = useDisplayText();
-    const panelStyle = {
-      background: 'var(--zw-paper)',
-      borderColor: 'var(--zw-line)',
-      padding: '16px',
-    };
 
     const classicHits = computed<ClassicHit[]>(() => {
       const seen = new Set<string>();
@@ -122,22 +116,20 @@ export default defineComponent({
       return list;
     });
 
-    return { display, panelStyle, classicHits };
+    return { display, classicHits };
   },
 });
 </script>
 
 <style scoped>
-h2 {
-  margin: 0 0 8px;
-  font-size: 1.1em;
-  letter-spacing: 0.2em;
-}
 h3 {
   margin: 20px 0 8px;
   font-size: 0.95em;
   letter-spacing: 0.16em;
   color: var(--zw-primary);
+}
+h3:first-of-type {
+  margin-top: 4px;
 }
 .note,
 .empty,
