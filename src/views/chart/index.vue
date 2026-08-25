@@ -283,7 +283,7 @@ export default defineComponent({
       async handleAiGenerate() {
         if (!_data.chart || _data.aiLoading) return;
         if (!aiConfigured) {
-          ElMessage.warning(display('AI 研習服務尚未配置', false));
+          ElMessage.warning(display('AI 解讀服務尚未配置', false));
           return;
         }
         const payload = buildChartAiPayload({
@@ -294,7 +294,7 @@ export default defineComponent({
           readings: readings.value,
         });
         if (!hasChartAiMaterial(payload)) {
-          ElMessage.warning(display('本盤材料不足，無法生成 AI 研習說明', false));
+          ElMessage.warning(display('本盤材料不足，無法生成 AI 解讀說明', false));
           return;
         }
         _data.aiLoading = true;

@@ -1,12 +1,20 @@
-import type { ChartAiPayload } from '@/utils/chartAiPayload';
+export type DivinationKind = 'liuren' | 'yaogua';
 
-const API_URL = (import.meta.env.VITE_CHART_AI_API as string | undefined)?.trim() || '';
+export interface DivinationAiPayload {
+  kind: DivinationKind;
+  question?: string;
+  cast: Record<string, unknown>;
+}
 
-export function isChartAiConfigured(): boolean {
+const API_URL =
+  (import.meta.env.VITE_DIVINATION_AI_API as string | undefined)?.trim() ||
+  '/api/divination-ai';
+
+export function isDivinationAiConfigured(): boolean {
   return Boolean(API_URL);
 }
 
-export async function fetchChartAiReading(payload: ChartAiPayload): Promise<string> {
+export async function fetchDivinationAi(payload: DivinationAiPayload): Promise<string> {
   if (!API_URL) {
     throw new Error('AI 解讀服務未配置，請聯繫站點管理員。');
   }
@@ -17,11 +25,11 @@ export async function fetchChartAiReading(payload: ChartAiPayload): Promise<stri
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(150_000),
+      signal: AbortSignal.timeout(120_000),
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === 'TimeoutError') {
-      throw new Error('請求逾時，模型仍在整理材料，請稍後重試。');
+      throw new Error('請求逾時，模型仍在整理，請稍後重試。');
     }
     throw err;
   }

@@ -61,7 +61,7 @@
         </article>
       </el-tab-pane>
 
-      <el-tab-pane :label="display('AI 研習', false)" name="ai">
+      <el-tab-pane :label="display('AI 解讀', false)" name="ai">
         <p class="note ai-disclaimer">
           {{
             display(
@@ -71,12 +71,12 @@
           }}
         </p>
         <p v-if="!aiConfigured" class="note">
-          {{ display('AI 研習服務尚未配置，暫不可用。', false) }}
+          {{ display('AI 解讀服務尚未配置，暫不可用。', false) }}
         </p>
         <template v-else>
           <div v-if="!aiContent && !aiLoading" class="ai-actions">
             <el-button type="primary" :disabled="aiLoading" @click="$emit('generate-ai')">
-              {{ display('生成研習說明', false) }}
+              {{ display('生成解讀說明', false) }}
             </el-button>
           </div>
           <div v-if="aiLoading" class="ai-loading">

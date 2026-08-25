@@ -4,7 +4,7 @@
     <p class="lead">
       {{
         display(
-          '三錢起卦：自下而上共六爻。每次擲三錢得一爻；老陽、老陰為變爻。成卦後節選站內易經條目原文作大體講解，不另行編寫吉凶斷語。',
+          '三錢起卦：自下而上共六爻。每次擲三錢得一爻；老陽、老陰為變爻。成卦後節選站內易經條目原文作大體講解，並可選用 AI 傾向解讀（不作絕對斷語）。',
           false,
         )
       }}
@@ -128,6 +128,34 @@
           )
         }}
       </p>
+
+      <div class="ai-panel">
+        <h3>{{ display('AI 解讀', false) }}</h3>
+        <p class="ai-hint">
+          {{ display('可選填所問事項；AI 依本卦／之卦給傾向說明，僅供參考，不作唯一決策依據。', false) }}
+        </p>
+        <el-input
+          v-model="aiQuestion"
+          type="textarea"
+          :rows="2"
+          maxlength="120"
+          show-word-limit
+          :placeholder="display('所問事項（選填）', false)"
+        />
+        <div class="ai-actions">
+          <el-button
+            type="primary"
+            :loading="aiLoading"
+            :disabled="!aiConfigured || aiLoading"
+            @click="handleAiGenerate"
+          >
+            {{ display('生成解讀', false) }}
+          </el-button>
+        </div>
+        <p v-if="!aiConfigured" class="ai-hint">{{ display('AI 解讀服務尚未配置。', false) }}</p>
+        <p v-if="aiError" class="ai-error">{{ aiError }}</p>
+        <pre v-if="aiContent" class="ai-body">{{ display(aiContent, false) }}</pre>
+      </div>
     </section>
   </div>
 </template>
@@ -140,6 +168,8 @@ import hexData from '@/data/yijingHexagrams.json';
 import { useDisplayText } from '@/composables/useDisplayText';
 import { useDevice } from '@/composables/useDevice';
 import { useYaoguaSessionStore } from '@/store/yaoguaSession';
+import { fetchDivinationAi, isDivinationAiConfigured } from '@/api/divinationAi';
+import { buildYaoguaAiPayload } from '@/utils/yaoguaAiPayload';
 import { trigramsOf } from '@/utils/yijingTrigrams';
 import { excerptHexagramOverview } from '@/utils/yijingExcerpt';
 import {
@@ -188,6 +218,11 @@ export default defineComponent({
     const motionOn = ref(false);
     const motionAccess = deviceMotionAccess();
     const motionBlocked = motionAccess !== 'ok';
+    const aiConfigured = isDivinationAiConfigured();
+    const aiQuestion = ref('');
+    const aiLoading = ref(false);
+    const aiError = ref('');
+    const aiContent = ref('');
     const motionHint =
       motionAccess === 'need-https'
         ? '手機搖動需 HTTPS 安全連線；當前為 HTTP，瀏覽器會攔截運動感應。請用上方「搖一搖」按鈕起爻。'
@@ -261,6 +296,8 @@ export default defineComponent({
         await new Promise((r) => setTimeout(r, schedule.totalMs));
         lines.value = full;
         result.value = finishCast(full);
+        aiError.value = '';
+        aiContent.value = '';
         shaking.value = false;
         ElMessage.success(display('六爻已成', false));
         return;
@@ -278,6 +315,8 @@ export default defineComponent({
 
       if (lines.value.length >= 6) {
         result.value = finishCast(lines.value);
+        aiError.value = '';
+        aiContent.value = '';
         ElMessage.success(display('六爻已成', false));
       }
     };
@@ -296,10 +335,39 @@ export default defineComponent({
       displayCoins.value = quickMode.value ? [...DEFAULT_SIX] : [...DEFAULT_THREE];
       pourSchedule.value = null;
       shaking.value = false;
+      aiQuestion.value = '';
+      aiError.value = '';
+      aiContent.value = '';
     };
 
     const handleModeChange = () => {
       handleReset();
+    };
+
+    const handleAiGenerate = async () => {
+      if (!result.value || aiLoading.value) return;
+      if (!aiConfigured) {
+        ElMessage.warning(display('AI 解讀服務尚未配置', false));
+        return;
+      }
+      aiLoading.value = true;
+      aiError.value = '';
+      try {
+        aiContent.value = await fetchDivinationAi(
+          buildYaoguaAiPayload({
+            result: result.value,
+            primaryName: primaryName.value,
+            relatingName: relatingName.value || undefined,
+            primaryOverview: primaryOverview.value,
+            relatingOverview: relatingOverview.value,
+            question: aiQuestion.value,
+          }),
+        );
+      } catch (err) {
+        aiError.value = err instanceof Error ? err.message : display('生成失敗，請稍後重試', false);
+      } finally {
+        aiLoading.value = false;
+      }
     };
 
     const onDeviceMotion = (e: DeviceMotionEvent) => {
@@ -379,9 +447,15 @@ export default defineComponent({
       relatingOverview,
       changingLabels,
       relatingLines,
+      aiConfigured,
+      aiQuestion,
+      aiLoading,
+      aiError,
+      aiContent,
       handleShake,
       handleReset,
       handleModeChange,
+      handleAiGenerate,
       handleEnableMotion,
       markGotoYijing,
     };
@@ -507,6 +581,48 @@ h1 {
   line-height: 1.55;
   color: var(--zw-muted);
   letter-spacing: 0.03em;
+}
+.ai-panel {
+  margin-top: 1.15rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--zw-line);
+}
+.ai-panel h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.14em;
+  color: var(--zw-primary);
+}
+.ai-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--zw-muted);
+}
+.ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.65rem 0 0.35rem;
+}
+.ai-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: #8a2f2f;
+  line-height: 1.5;
+}
+.ai-body {
+  margin: 0.75rem 0 0;
+  padding: 0.85rem 0.95rem;
+  border-radius: 8px;
+  border: 1px solid var(--zw-line);
+  background: color-mix(in srgb, var(--zw-bg) 35%, var(--zw-paper));
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.75;
+  color: var(--zw-ink);
 }
 .link {
   display: inline-block;

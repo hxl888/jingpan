@@ -9,9 +9,12 @@ from urllib import error, request
 ROOT = os.environ.get("JINGPAN_ROOT", "/var/www/jingpan")
 HOST = os.environ.get("JINGPAN_HOST", "0.0.0.0")
 PORT = int(os.environ.get("JINGPAN_PORT", "80"))
+AI_UPSTREAM_BASE = os.environ.get("JINGPAN_AI_UPSTREAM_BASE", "http://127.0.0.1:8787").rstrip("/")
+# 兼容旧环境变量
 CHART_AI_UPSTREAM = os.environ.get(
-    "JINGPAN_CHART_AI_UPSTREAM", "http://127.0.0.1:8787/api/chart-ai-reading"
+    "JINGPAN_CHART_AI_UPSTREAM", f"{AI_UPSTREAM_BASE}/api/chart-ai-reading"
 )
+AI_API_PATHS = frozenset({"/api/chart-ai-reading", "/api/divination-ai"})
 
 
 class SpaHandler(SimpleHTTPRequestHandler):
@@ -33,11 +36,17 @@ class SpaHandler(SimpleHTTPRequestHandler):
     def _api_path(self) -> str:
         return self.path.split("?", 1)[0]
 
-    def _proxy_chart_ai(self) -> None:
+    def _upstream_url(self) -> str:
+        path = self._api_path()
+        if path == "/api/chart-ai-reading" and "JINGPAN_CHART_AI_UPSTREAM" in os.environ:
+            return CHART_AI_UPSTREAM
+        return f"{AI_UPSTREAM_BASE}{path}"
+
+    def _proxy_ai(self) -> None:
         length = int(self.headers.get("Content-Length", "0") or 0)
         body = self.rfile.read(length) if length else b""
         headers = {"Content-Type": self.headers.get("Content-Type", "application/json")}
-        req = request.Request(CHART_AI_UPSTREAM, data=body, headers=headers, method=self.command)
+        req = request.Request(self._upstream_url(), data=body, headers=headers, method=self.command)
         try:
             with request.urlopen(req, timeout=300) as upstream:
                 payload = upstream.read()
@@ -75,13 +84,13 @@ class SpaHandler(SimpleHTTPRequestHandler):
             self.path = "/index.html"
 
     def do_OPTIONS(self):  # noqa: N802
-        if self._api_path() == "/api/chart-ai-reading":
-            return self._proxy_chart_ai()
+        if self._api_path() in AI_API_PATHS:
+            return self._proxy_ai()
         self.send_error(404)
 
     def do_POST(self):  # noqa: N802
-        if self._api_path() == "/api/chart-ai-reading":
-            return self._proxy_chart_ai()
+        if self._api_path() in AI_API_PATHS:
+            return self._proxy_ai()
         self.send_error(405)
 
     def do_GET(self):  # noqa: N802

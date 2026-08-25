@@ -114,6 +114,34 @@
         <p class="summary">{{ display(previewPalace.summary, false) }}</p>
         <p class="trace">{{ display('點「起課」後，落宮會高亮顯示。', false) }}</p>
       </article>
+
+      <div v-if="result" class="ai-panel">
+        <h3>{{ display('AI 解讀', false) }}</h3>
+        <p class="ai-hint">
+          {{ display('可選填所問事項；AI 給傾向說明，僅供參考，不作唯一決策依據。', false) }}
+        </p>
+        <el-input
+          v-model="aiQuestion"
+          type="textarea"
+          :rows="2"
+          maxlength="120"
+          show-word-limit
+          :placeholder="display('所問事項（選填）', false)"
+        />
+        <div class="ai-actions">
+          <el-button
+            type="primary"
+            :loading="aiLoading"
+            :disabled="!aiConfigured || aiLoading"
+            @click="handleAiGenerate"
+          >
+            {{ display('生成解讀', false) }}
+          </el-button>
+        </div>
+        <p v-if="!aiConfigured" class="ai-hint">{{ display('AI 解讀服務尚未配置。', false) }}</p>
+        <p v-if="aiError" class="ai-error">{{ aiError }}</p>
+        <pre v-if="aiContent" class="ai-body">{{ display(aiContent, false) }}</pre>
+      </div>
     </section>
 
     <section class="panel guide" :style="cardStyle">
@@ -146,6 +174,8 @@ import { ElMessage } from 'element-plus';
 import contentJson from '@/data/liurenContent.json';
 import { useDisplayText } from '@/composables/useDisplayText';
 import { useDevice } from '@/composables/useDevice';
+import { fetchDivinationAi, isDivinationAiConfigured } from '@/api/divinationAi';
+import { buildLiurenAiPayload } from '@/utils/liurenAiPayload';
 import SheetSelect from '@/components/sheet/SheetSelect.vue';
 import LiurenHand from './components/LiurenHand.vue';
 import {
@@ -168,6 +198,11 @@ export default defineComponent({
     const hour = ref(1);
     const result = ref<LiurenResult | null>(null);
     const previewIndex = ref(0);
+    const aiConfigured = isDivinationAiConfigured();
+    const aiQuestion = ref('');
+    const aiLoading = ref(false);
+    const aiError = ref('');
+    const aiContent = ref('');
 
     const monthOptions = computed(() =>
       Array.from({ length: 12 }, (_, i) => ({
@@ -196,6 +231,11 @@ export default defineComponent({
       borderColor: 'var(--zw-line)',
     };
 
+    const clearAi = () => {
+      aiError.value = '';
+      aiContent.value = '';
+    };
+
     const handleCast = () => {
       result.value = castLiuren({
         month: month.value,
@@ -203,6 +243,7 @@ export default defineComponent({
         hour: hour.value,
       });
       previewIndex.value = result.value.index;
+      clearAi();
     };
 
     const handleFillNow = () => {
@@ -219,6 +260,7 @@ export default defineComponent({
       day.value = lunar.getDay();
       hour.value = clockToLiurenHour(now.getHours(), now.getMinutes());
       result.value = null;
+      clearAi();
       ElMessage.success(
         display(
           `已填入農曆${month.value}月${day.value}日 · ${LIUREN_HOURS[hour.value - 1].label.split(' ')[0]}`,
@@ -233,7 +275,34 @@ export default defineComponent({
       hour.value = 1;
       result.value = null;
       previewIndex.value = 0;
+      aiQuestion.value = '';
+      clearAi();
       ElMessage.info(display('已重置', false));
+    };
+
+    const handleAiGenerate = async () => {
+      if (!result.value || aiLoading.value) return;
+      if (!aiConfigured) {
+        ElMessage.warning(display('AI 解讀服務尚未配置', false));
+        return;
+      }
+      aiLoading.value = true;
+      aiError.value = '';
+      try {
+        aiContent.value = await fetchDivinationAi(
+          buildLiurenAiPayload({
+            result: result.value,
+            month: month.value,
+            day: day.value,
+            hour: hour.value,
+            question: aiQuestion.value,
+          }),
+        );
+      } catch (err) {
+        aiError.value = err instanceof Error ? err.message : display('生成失敗，請稍後重試', false);
+      } finally {
+        aiLoading.value = false;
+      }
     };
 
     return {
@@ -253,9 +322,15 @@ export default defineComponent({
       LIUREN_PALACES,
       LIUREN_HOURS,
       handActive,
+      aiConfigured,
+      aiQuestion,
+      aiLoading,
+      aiError,
+      aiContent,
       handleCast,
       handleFillNow,
       handleReset,
+      handleAiGenerate,
     };
   },
 });
@@ -436,6 +511,48 @@ h1 {
   font-size: 0.8rem;
   color: var(--zw-muted);
   letter-spacing: 0.04em;
+}
+.ai-panel {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--zw-line);
+}
+.ai-panel h3 {
+  margin: 0 0 0.45rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.14em;
+  color: var(--zw-primary);
+}
+.ai-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: var(--zw-muted);
+}
+.ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.65rem 0 0.35rem;
+}
+.ai-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: #8a2f2f;
+  line-height: 1.5;
+}
+.ai-body {
+  margin: 0.75rem 0 0;
+  padding: 0.85rem 0.95rem;
+  border-radius: 8px;
+  border: 1px solid var(--zw-line);
+  background: color-mix(in srgb, var(--zw-bg) 35%, var(--zw-paper));
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.75;
+  color: var(--zw-ink);
 }
 .guide ul,
 .guide ol {

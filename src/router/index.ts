@@ -155,7 +155,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/liuren/index.vue'),
     meta: {
       title: '六壬法',
-      description: '依農曆月日時推六宮，本地計算、無 AI 解卦，對照天紀公開算法。',
+      description: '依農曆月日時推六宮，本地計算，可選用 AI 傾向解讀。',
       skeleton: 'liuren',
     },
   },
@@ -165,7 +165,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/yaogua/index.vue'),
     meta: {
       title: '三錢搖卦',
-      description: '三錢法本地起六爻，出本卦／之卦並鏈接站內易經原文，不編吉凶斷語。',
+      description: '三錢法本地起六爻，出本卦／之卦並鏈接站內易經原文，可選用 AI 傾向解讀。',
       skeleton: 'yaogua',
     },
   },

@@ -47,7 +47,7 @@ const SYSTEM_PROMPT = `你是「经盘」紫微斗数研习站的 AI 助手。�
    （把 patterns、excerpts、palaceReadings 串成流畅段落，像在讲一个人，不要逐条编号堆砌）
    ## 分宫要点
    （仅写有 palaceReadings 或摘句能对应到的宫位；每宫 2～4 句白话。若无一宫有材料，可省略本节）
-   ## 研习提示
+   ## 解读提示
    （提醒对照站内「命盘解读」「古籍原文」核对；本站只整理材料，不提供行事决策）`;
 
 function loadEnv(filePath) {
@@ -141,7 +141,7 @@ async function handleChartAiReading(body, origin, res) {
   }
 
   if (!hasMaterial(payload)) {
-    sendJson(res, 400, { error: '本盤材料不足，無法生成 AI 研習說明。' }, origin);
+    sendJson(res, 400, { error: '本盤材料不足，無法生成 AI 解讀說明。' }, origin);
     return;
   }
 
