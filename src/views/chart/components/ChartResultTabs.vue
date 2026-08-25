@@ -61,36 +61,6 @@
         </article>
       </el-tab-pane>
 
-      <el-tab-pane :label="display('命盤格局', false)" name="pattern">
-        <p v-if="!patterns.length" class="note">
-          {{ display('本盤未匹配到卷一格局歌訣。格局只錄古本原句，不另作白話。', false) }}
-        </p>
-        <article v-for="p in patterns" :key="p.name" class="mb-4">
-          <h4 style="color: var(--zw-gold)">{{ display(p.name, false) }}</h4>
-          <p class="text-sm" style="color: var(--zw-muted)">{{ display(p.condition) }}</p>
-          <div class="song-card">{{ formatSong(display(p.originalText)) }}</div>
-        </article>
-      </el-tab-pane>
-
-      <el-tab-pane :label="display('古籍原文', false)" name="excerpt">
-        <ExcerptPanel :items="excerpts" @goto="$emit('goto', $event)" />
-      </el-tab-pane>
-
-      <el-tab-pane :label="display('本盤彙總', false)" name="summary">
-        <ChartPersonSummary
-          :readings="readings"
-          :patterns="patterns"
-          :five-elements-class="fiveElementsClass"
-          :soul="soul"
-          :body="body"
-          :gender="gender"
-          :lunar-date="lunarDate"
-          :chinese-date="chineseDate"
-          :horoscope="horoscope"
-          @goto="$emit('goto', $event)"
-        />
-      </el-tab-pane>
-
       <el-tab-pane :label="display('AI 研習', false)" name="ai">
         <p class="note ai-disclaimer">
           {{
@@ -130,6 +100,21 @@
           </article>
         </template>
       </el-tab-pane>
+
+      <el-tab-pane :label="display('命盤格局', false)" name="pattern">
+        <p v-if="!patterns.length" class="note">
+          {{ display('本盤未匹配到卷一格局歌訣。格局只錄古本原句，不另作白話。', false) }}
+        </p>
+        <article v-for="p in patterns" :key="p.name" class="mb-4">
+          <h4 style="color: var(--zw-gold)">{{ display(p.name, false) }}</h4>
+          <p class="text-sm" style="color: var(--zw-muted)">{{ display(p.condition) }}</p>
+          <div class="song-card">{{ formatSong(display(p.originalText)) }}</div>
+        </article>
+      </el-tab-pane>
+
+      <el-tab-pane :label="display('古籍原文', false)" name="excerpt">
+        <ExcerptPanel :items="excerpts" @goto="$emit('goto', $event)" />
+      </el-tab-pane>
     </el-tabs>
   </section>
 </template>
@@ -138,29 +123,20 @@
 import { defineComponent, ref, type PropType } from 'vue';
 import { Loading } from '@element-plus/icons-vue';
 import type { ExcerptItem, MatchedPattern, PalaceReading } from '@/types';
-import type { HoroscopeView } from '@/utils/chart';
 import { useDisplayText } from '@/composables/useDisplayText';
 import { useCenterScrollTabs } from '@/composables/useCenterScrollTabs';
 import { copyText } from '@/utils/copy';
 import ChartLegend from './ChartLegend.vue';
-import ChartPersonSummary from './ChartPersonSummary.vue';
 import ExcerptPanel from './ExcerptPanel.vue';
 import { SANFANG_BAIKE, SANFANG_DEF, toReadingQuote } from '@/data/readingQuotes';
 
 export default defineComponent({
   name: 'ChartResultTabs',
-  components: { ChartLegend, ChartPersonSummary, ExcerptPanel, Loading },
+  components: { ChartLegend, ExcerptPanel, Loading },
   props: {
     readings: { type: Array as PropType<PalaceReading[]>, default: () => [] },
     patterns: { type: Array as PropType<MatchedPattern[]>, default: () => [] },
     excerpts: { type: Array as PropType<ExcerptItem[]>, default: () => [] },
-    fiveElementsClass: { type: String, default: '' },
-    soul: { type: String, default: '' },
-    body: { type: String, default: '' },
-    gender: { type: String, default: '' },
-    lunarDate: { type: String, default: '' },
-    chineseDate: { type: String, default: '' },
-    horoscope: { type: Object as PropType<HoroscopeView | null>, default: null },
     aiLoading: { type: Boolean, default: false },
     aiError: { type: String, default: '' },
     aiContent: { type: String, default: '' },
@@ -174,7 +150,7 @@ export default defineComponent({
     const { display } = useDisplayText();
     const activeTab = ref('reading');
     const tabsRootRef = ref<HTMLElement>();
-    const tabNames = ['reading', 'pattern', 'excerpt', 'summary', 'ai'] as const;
+    const tabNames = ['reading', 'ai', 'pattern', 'excerpt'] as const;
     useCenterScrollTabs(tabsRootRef, activeTab, tabNames);
     const panelStyle = {
       background: 'var(--zw-paper)',

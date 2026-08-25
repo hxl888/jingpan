@@ -3,7 +3,7 @@
     <RouteProgressBar />
     <AppHeader />
     <main class="flex-1">
-      <!-- v-show 保住 keep-alive；懒加载期间由 isLoading 立刻换骨架 -->
+      <!-- keep-alive：站内往返保留排盘/起名/易经/摇卦状态；硬刷新内存清空即初始化 -->
       <div v-show="!isLoading">
         <router-view v-slot="{ Component }">
           <keep-alive include="ChartPage,NamingPage,YijingPage,YaoguaPage">

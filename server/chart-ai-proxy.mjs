@@ -31,7 +31,7 @@ const CF_AI_BASE =
     ? `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/ai/v1`
     : '');
 
-const FORBIDDEN = /大吉|大凶|吉凶|開運|改命|招財|破財|宜嫁娶|宜出行|命運好壞|福禍|凶吉/g;
+const FORBIDDEN = /大吉|大凶|開運|改命|招財|破財|宜嫁娶|宜出行|命運好壞/g;
 
 const SYSTEM_PROMPT = `你是「经盘」紫微斗数研习站的 AI 助手，职责 ONLY 是根据用户消息中的 JSON 材料，用现代白话整理、串联已命中的古籍原文与格局歌诀。
 
@@ -48,7 +48,7 @@ const SYSTEM_PROMPT = `你是「经盘」紫微斗数研习站的 AI 助手，�
    ## 格局整理
    （仅整理 JSON.patterns）
    ## 研习提示
-   （提醒用户对照站内原文链接核对，强调本站不编吉凶断语）`;
+   （提醒用户对照站内原文链接核对，强调本站不作祸福断语、不提供行事决策）`;
 
 function loadEnv(filePath) {
   if (!existsSync(filePath)) return;
@@ -114,7 +114,10 @@ async function callModel(payload, retry = false) {
       ],
       temperature: 0.3,
       max_tokens: 4096,
+      reasoning_effort: 'low',
+      chat_template_kwargs: { enable_thinking: false },
     }),
+    signal: AbortSignal.timeout(300_000),
   });
 
   const data = await res.json().catch(() => ({}));

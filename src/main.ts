@@ -6,6 +6,13 @@ import 'element-plus/dist/index.css';
 import App from './App.vue';
 import router from './router';
 import './styles/index.css';
+import './styles/skeleton.css';
+
+/** 硬刷新不恢复浏览器滚动位置；站内往返仍由路由 / keep-alive 自行处理 */
+if ('scrollRestoration' in history) {
+  history.scrollRestoration = 'manual';
+}
+window.scrollTo(0, 0);
 
 const app = createApp(App);
 app.use(createPinia());

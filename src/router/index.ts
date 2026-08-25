@@ -12,10 +12,12 @@ declare module 'vue-router' {
     seoDynamic?: boolean;
     /** 路由懶加載時的骨架類型 */
     skeleton?: SkeletonType;
+    /** 顶栏显示字号 ± 与复制（仅正文可读页） */
+    fontTools?: boolean;
   }
 }
 
-/** 與 App.vue keep-alive include 的組件 name 對齊 */
+/** 与 App.vue keep-alive include 的组件 name 对齐 */
 const KEEP_ALIVE_BY_ROUTE: Record<string, string> = {
   chart: 'ChartPage',
   naming: 'NamingPage',
@@ -26,7 +28,7 @@ const KEEP_ALIVE_BY_ROUTE: Record<string, string> = {
 const visitedKeepAlive = new Set<string>();
 let loadingStarted = false;
 
-const { start, done, fail } = useRouteLoading();
+const { start, done, fail, isLoading } = useRouteLoading();
 
 const routes: RouteRecordRaw[] = [
   {
@@ -36,7 +38,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '首頁',
       description: SITE_DESCRIPTION,
-      skeleton: 'list',
+      skeleton: 'home',
     },
   },
   {
@@ -46,7 +48,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '紫微排盤',
       description: '本地紫微斗數排盤：公曆生辰、真太陽時、十二宮命盤與古籍原文對照，不編吉凶斷語。',
-      skeleton: 'tool',
+      skeleton: 'chart',
     },
   },
   {
@@ -56,7 +58,8 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '古籍原文',
       description: '《紫微斗數全書》卷一至卷三站內閱讀，星曜、格局、納音等原文可對照查閱。',
-      skeleton: 'list',
+      skeleton: 'book',
+      fontTools: true,
     },
   },
   {
@@ -66,7 +69,8 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '易經六十四卦',
       description: '斷易天機六十四卦按文王卦序整理，含卦象圖與講解原文，可按八卦篩選。',
-      skeleton: 'list',
+      skeleton: 'yijing',
+      fontTools: true,
     },
   },
   {
@@ -77,7 +81,8 @@ const routes: RouteRecordRaw[] = [
       title: '易經卦詳',
       description: '易經單卦詳解：卦象、圖說與原文節選，支持上下卦跳轉。',
       seoDynamic: true,
-      skeleton: 'detail',
+      skeleton: 'yijing-detail',
+      fontTools: true,
     },
   },
   {
@@ -87,7 +92,8 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '星曜詞典',
       description: '紫微斗數諸星問答與廟旺落陷等卷一原文詞典。',
-      skeleton: 'list',
+      skeleton: 'star-dict',
+      fontTools: true,
     },
   },
   {
@@ -98,7 +104,8 @@ const routes: RouteRecordRaw[] = [
       title: '星曜詳解',
       description: '單顆星曜的古籍原文與性質說明。',
       seoDynamic: true,
-      skeleton: 'detail',
+      skeleton: 'star-dict-detail',
+      fontTools: true,
     },
   },
   {
@@ -108,7 +115,8 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '格局詞典',
       description: '紫微斗數格局歌訣原文對照，便於研習查閱。',
-      skeleton: 'list',
+      skeleton: 'pattern-dict',
+      fontTools: true,
     },
   },
   {
@@ -118,7 +126,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '羅盤',
       description: '研習用地盤羅盤：廿四山、先後天八卦與洛書，不作風水斷事。',
-      skeleton: 'tool',
+      skeleton: 'luopan',
     },
   },
   {
@@ -128,7 +136,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '老黃曆',
       description: '農曆黃曆宜忌查閱（曆注來源公開庫），僅供研習參考。',
-      skeleton: 'tool',
+      skeleton: 'almanac',
     },
   },
   {
@@ -138,7 +146,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '納音起名',
       description: '依日柱納音生扶取喜用字，站內精選字庫，可跳轉卷二納音歌核對。',
-      skeleton: 'tool',
+      skeleton: 'naming',
     },
   },
   {
@@ -148,7 +156,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '六壬法',
       description: '依農曆月日時推六宮，本地計算、無 AI 解卦，對照天紀公開算法。',
-      skeleton: 'tool',
+      skeleton: 'liuren',
     },
   },
   {
@@ -158,7 +166,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '三錢搖卦',
       description: '三錢法本地起六爻，出本卦／之卦並鏈接站內易經原文，不編吉凶斷語。',
-      skeleton: 'tool',
+      skeleton: 'yaogua',
     },
   },
   {
@@ -168,14 +176,19 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: '關於與聲明',
       description: '經盤資料來源、算法說明與免責聲明：僅供傳統文化與古籍研習。',
-      skeleton: 'list',
+      skeleton: 'about',
+      fontTools: true,
     },
   },
 ];
 
 const router = createRouter({
   history: createWebHistory(),
-  scrollBehavior(to, _from, savedPosition) {
+  scrollBehavior(to, from, savedPosition) {
+    // 硬刷新 / 首次进入：强制回顶，不沿用浏览器滚动恢复
+    if (!from.matched.length) {
+      return { top: 0, left: 0 };
+    }
     if (savedPosition) return savedPosition;
     if (to.hash) {
       return { el: to.hash, behavior: 'smooth', top: 80 };
@@ -191,22 +204,20 @@ const router = createRouter({
 router.beforeEach((to, from) => {
   loadingStarted = false;
 
-  // 首次进入 / 硬刷新：浏览器已有加载反馈，不再叠一层应用内进度条
-  if (!from.matched.length) {
-    return true;
-  }
-
-  if (to.path === from.path) {
+  // 仅 hash/query 变化：不闪骨架
+  if (from.matched.length && to.path === from.path) {
     return true;
   }
 
   const keepName =
     typeof to.name === 'string' ? KEEP_ALIVE_BY_ROUTE[to.name] : undefined;
-  if (keepName && visitedKeepAlive.has(keepName)) {
+  // keep-alive 命中：组件已在内存，数据保留，不闪骨架
+  if (from.matched.length && keepName && visitedKeepAlive.has(keepName)) {
     return true;
   }
 
-  start(to.meta.skeleton ?? 'list');
+  // 含首次进入 / 硬刷新：懒加载 chunk 未到前必须出骨架
+  start(to.meta.skeleton ?? 'home');
   loadingStarted = true;
   return true;
 });
@@ -215,6 +226,9 @@ router.afterEach((to) => {
   if (loadingStarted) {
     done();
     loadingStarted = false;
+  } else if (isLoading.value) {
+    // 兜底：首屏默认 loading，避免异常路径卡死骨架
+    done();
   }
 
   const keepName =

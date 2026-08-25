@@ -11,16 +11,29 @@ export async function fetchChartAiReading(payload: ChartAiPayload): Promise<stri
     throw new Error('AI 研習服務未配置，請聯繫站點管理員。');
   }
 
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  let res: Response;
+  try {
+    res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(150_000),
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new Error('請求逾時，模型仍在整理材料，請稍後重試。');
+    }
+    throw err;
+  }
 
   const data = (await res.json().catch(() => ({}))) as { content?: string; error?: string };
 
   if (!res.ok) {
-    throw new Error(data.error || `請求失敗（${res.status}）`);
+    const msg = data.error || `請求失敗（${res.status}）`;
+    if (/timed out/i.test(msg)) {
+      throw new Error('模型回應逾時，請稍後重試。');
+    }
+    throw new Error(msg);
   }
 
   if (!data.content?.trim()) {

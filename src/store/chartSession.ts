@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import type { ChartFormValue } from '@/views/chart/components/ChartForm.vue';
 
-/** 僅內存：刷新頁面清空；站內跳轉靠 keep-alive / Pinia 保留 */
+/** 僅內存：硬刷新清空；站內往返靠 keep-alive / Pinia 保留 */
 export interface ChartSessionSnapshot {
   form: ChartFormValue;
   targetDate: string;

@@ -12,9 +12,10 @@
           <stop offset="0%" stop-color="#2a2148" />
           <stop offset="100%" stop-color="#0b1020" />
         </radialGradient>
-        <filter :id="glowId" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="1.2" result="b" />
+        <filter :id="glowId" x="-80%" y="-80%" width="260%" height="260%">
+          <feGaussianBlur stdDeviation="2.4" result="b" />
           <feMerge>
+            <feMergeNode in="b" />
             <feMergeNode in="b" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
@@ -100,41 +101,41 @@
 import { defineComponent } from 'vue';
 import { useDisplayText } from '@/composables/useDisplayText';
 
-/** [cx, cy, r] */
+/** [cx, cy, r] — 略放大半径，H5 上闪烁更易辨认 */
 const STARS: Array<[number, number, number]> = [
-  [120, 90, 1.5],
-  [180, 70, 1],
-  [240, 110, 1.8],
-  [300, 80, 1.2],
-  [360, 130, 1],
-  [420, 95, 2],
-  [480, 70, 1.3],
-  [540, 120, 1],
-  [600, 85, 1.6],
-  [660, 140, 1.1],
-  [720, 100, 1.4],
-  [100, 200, 1],
-  [160, 230, 1.5],
-  [220, 190, 1.2],
-  [280, 250, 2],
-  [340, 210, 1],
-  [400, 240, 1.7],
-  [460, 200, 1.3],
-  [520, 260, 1],
-  [580, 220, 1.8],
-  [640, 270, 1.2],
-  [700, 230, 1.5],
-  [140, 320, 1.4],
-  [200, 360, 1],
-  [260, 330, 1.6],
-  [320, 380, 1.2],
-  [380, 340, 2],
-  [440, 370, 1],
-  [500, 330, 1.5],
-  [560, 390, 1.1],
-  [620, 350, 1.7],
-  [680, 400, 1],
-  [740, 360, 1.3],
+  [120, 90, 2.1],
+  [180, 70, 1.5],
+  [240, 110, 2.4],
+  [300, 80, 1.8],
+  [360, 130, 1.5],
+  [420, 95, 2.6],
+  [480, 70, 1.9],
+  [540, 120, 1.5],
+  [600, 85, 2.2],
+  [660, 140, 1.7],
+  [720, 100, 2],
+  [100, 200, 1.5],
+  [160, 230, 2.1],
+  [220, 190, 1.8],
+  [280, 250, 2.6],
+  [340, 210, 1.5],
+  [400, 240, 2.3],
+  [460, 200, 1.9],
+  [520, 260, 1.5],
+  [580, 220, 2.4],
+  [640, 270, 1.8],
+  [700, 230, 2.1],
+  [140, 320, 2],
+  [200, 360, 1.5],
+  [260, 330, 2.2],
+  [320, 380, 1.8],
+  [380, 340, 2.6],
+  [440, 370, 1.5],
+  [500, 330, 2.1],
+  [560, 390, 1.7],
+  [620, 350, 2.3],
+  [680, 400, 1.5],
+  [740, 360, 1.9],
 ];
 
 export default defineComponent({
@@ -143,10 +144,14 @@ export default defineComponent({
     const { display } = useDisplayText();
     const uid = Math.random().toString(36).slice(2, 8);
 
-    const starAnim = (i: number) => ({
-      animationDelay: `${(i % 7) * 0.35}s`,
-      animationDuration: `${2.4 + (i % 5) * 0.4}s`,
-    });
+    const starAnim = (i: number) => {
+      const variant = i % 3;
+      return {
+        animationDelay: `${(i % 9) * 0.22}s`,
+        animationDuration: `${1.35 + (i % 6) * 0.28}s`,
+        animationName: variant === 0 ? 'twinkle-bright' : variant === 1 ? 'twinkle' : 'twinkle-soft',
+      };
+    };
 
     return {
       display,
@@ -198,10 +203,12 @@ export default defineComponent({
 }
 
 .star {
-  opacity: 0.75;
-  animation-name: twinkle;
+  opacity: 0.55;
+  transform-box: fill-box;
+  transform-origin: center;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
+  will-change: opacity, transform;
 }
 
 @keyframes line-dash {
@@ -210,13 +217,50 @@ export default defineComponent({
   }
 }
 
+/* 强闪：几乎熄灭 → 爆亮 + 放大 */
+@keyframes twinkle-bright {
+  0%,
+  100% {
+    opacity: 0.12;
+    transform: scale(0.55);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1.55);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.35);
+  }
+}
+
+/* 中闪 */
 @keyframes twinkle {
   0%,
   100% {
-    opacity: 0.45;
+    opacity: 0.18;
+    transform: scale(0.7);
   }
   50% {
     opacity: 1;
+    transform: scale(1.4);
+  }
+}
+
+/* 柔闪：节奏错开，避免整片同闪 */
+@keyframes twinkle-soft {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: scale(0.8);
+  }
+  40% {
+    opacity: 0.95;
+    transform: scale(1.25);
+  }
+  70% {
+    opacity: 0.4;
+    transform: scale(0.85);
   }
 }
 
@@ -227,6 +271,7 @@ export default defineComponent({
   }
   .star {
     opacity: 0.85;
+    transform: none;
   }
 }
 </style>

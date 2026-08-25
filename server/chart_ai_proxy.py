@@ -13,26 +13,31 @@ from urllib import error, request
 ROOT = Path(__file__).resolve().parent
 ENV_FILE = ROOT / '.env'
 
-FORBIDDEN = re.compile(
-    r'大吉|大凶|吉凶|開運|改命|招財|破財|宜嫁娶|宜出行|命運好壞|福禍|凶吉'
+# 仅拦「行动性」断语。勿含「大吉/大凶/吉凶」——模型常在研习提示写「不作大吉大凶」，会误杀并触发二次请求。
+FORBIDDEN = re.compile(r'開運方法|改命|招財術|破財免|宜嫁娶|宜出行|命運好壞|必主大富|必主橫財')
+
+# 否定语境整句先挖掉再检查（「禁止开运改命」等）
+DISCLAIMER_SPAN = re.compile(
+    r'[^。！？\n]{0,30}(不[作做编編致提供]|禁止|勿|無|没有|並非|并非|僅供|仅供)[^。！？\n]{0,48}'
+    r'(大吉|大凶|吉凶|開運|改命|宜忌|禍福|祸福|断语|斷語)[^。！？\n]{0,24}[。！？]?'
 )
 
 SYSTEM_PROMPT = """你是「经盘」紫微斗数研习站的 AI 助手，职责 ONLY 是根据用户消息中的 JSON 材料，用现代白话整理、串联已命中的古籍原文与格局歌诀。
 
 硬性规则（违反即为失败）：
 1. 只能使用用户消息 JSON 里出现的字段内容，不得引用、推断或补充任何外部知识。
-2. 禁止吉凶裁决、祸福预测、命运好坏、开运改命、宜忌行事等任何决策性建议。
+2. 禁止祸福预测、命运好坏判断、开运改命、宜忌行事等任何决策性建议。
 3. 每一段白话整理必须标明对应出处（章节名、格局名或 palace 字段）。
 4. 材料中没有对应说明的条目，必须写「原文未载」，不得编造。
-5. 输出使用 Markdown，固定结构：
+5. 输出使用 Markdown，固定结构且尽量简洁：
    ## 总览
-   （仅复述本盘提供的宫位数、命中格局数、摘句规模等客观信息，不作断语）
+   （客观复述宫位数、格局数、摘句规模，不作断语）
    ## 分宫整理
-   （按 JSON.palaces 顺序，结合 palaceReadings 与 excerpts 中与本宫相关材料）
+   （按材料整理，每宫 2～4 句）
    ## 格局整理
    （仅整理 JSON.patterns）
    ## 研习提示
-   （提醒用户对照站内原文链接核对，强调本站不编吉凶断语）"""
+   （提醒对照站内原文；本站只做原文整理，不提供行事决策）"""
 
 
 def load_env() -> None:
@@ -60,6 +65,53 @@ def resolve_origin(req_origin: str) -> str:
     return items[0] if items else '*'
 
 
+def trim_text(text: str, limit: int) -> str:
+    text = (text or '').strip()
+    if len(text) <= limit:
+        return text
+    return text[:limit] + '…'
+
+
+def compact_payload(body: dict) -> dict:
+    """缩小请求体，降低推理耗时与超时概率。"""
+    return {
+        'patterns': [
+            {
+                'name': item.get('name', ''),
+                'condition': trim_text(str(item.get('condition', '')), 80),
+                'text': trim_text(str(item.get('text', '')), 200),
+            }
+            for item in (body.get('patterns') or [])[:8]
+            if isinstance(item, dict)
+        ],
+        'excerpts': [
+            {
+                'chapterTitle': item.get('chapterTitle', ''),
+                'chapterId': item.get('chapterId'),
+                'text': trim_text(str(item.get('text', '')), 180),
+            }
+            for item in (body.get('excerpts') or [])[:10]
+            if isinstance(item, dict)
+        ],
+        'palaceReadings': [
+            {
+                'palace': item.get('palace', ''),
+                'classic': trim_text(str(item.get('classic', '')), 100),
+                'vernacular': trim_text(str(item.get('vernacular', '') or ''), 100) or None,
+                'source': trim_text(str(item.get('source', '') or ''), 40) or None,
+            }
+            for item in (body.get('palaceReadings') or [])[:24]
+            if isinstance(item, dict)
+        ],
+        # 可选摘要字段，有则保留
+        **{
+            k: body[k]
+            for k in ('palaces', 'soul', 'body', 'fiveElementsClass')
+            if k in body
+        },
+    }
+
+
 def has_material(body: dict) -> bool:
     def count(key: str) -> int:
         val = body.get(key)
@@ -69,10 +121,11 @@ def has_material(body: dict) -> bool:
 
 
 def violates_rules(text: str) -> bool:
-    return bool(FORBIDDEN.search(text))
+    cleaned = DISCLAIMER_SPAN.sub('', text or '')
+    return bool(FORBIDDEN.search(cleaned))
 
 
-def call_model(payload: dict, retry: bool = False) -> str:
+def call_model(payload: dict) -> str:
     account_id = os.environ.get('CF_ACCOUNT_ID', '')
     token = os.environ.get('CF_API_TOKEN', '')
     model = os.environ.get('CF_AI_MODEL', '@cf/zai-org/glm-4.7-flash')
@@ -83,22 +136,21 @@ def call_model(payload: dict, retry: bool = False) -> str:
     if not account_id or not token or not base:
         raise RuntimeError('Server missing CF_ACCOUNT_ID / CF_API_TOKEN configuration')
 
-    system = SYSTEM_PROMPT
-    if retry:
-        system += '\n\n上次输出含违禁表述，请严格删除吉凶类用语后重写。'
-
+    # 紧凑 JSON，少 token；限制输出长度，缩短等待
     req_body = json.dumps(
         {
             'model': model,
             'messages': [
-                {'role': 'system', 'content': system},
-                {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False, indent=2)},
+                {'role': 'system', 'content': SYSTEM_PROMPT},
+                {'role': 'user', 'content': json.dumps(payload, ensure_ascii=False, separators=(',', ':'))},
             ],
-            'temperature': 0.3,
-            # glm-4.7-flash 会先写 reasoning，再填 content；过小会 content=null
-            'max_tokens': 8192,
+            'temperature': 0.2,
+            'max_tokens': 1800,
+            'reasoning_effort': 'low',
+            'chat_template_kwargs': {'enable_thinking': False},
         },
         ensure_ascii=False,
+        separators=(',', ':'),
     ).encode('utf-8')
 
     req = request.Request(
@@ -112,7 +164,7 @@ def call_model(payload: dict, retry: bool = False) -> str:
     )
 
     try:
-        with request.urlopen(req, timeout=180) as resp:
+        with request.urlopen(req, timeout=120) as resp:
             data = json.loads(resp.read().decode('utf-8'))
     except error.HTTPError as exc:
         detail = exc.read().decode('utf-8', errors='replace')
@@ -122,6 +174,11 @@ def call_model(payload: dict, retry: bool = False) -> str:
         except json.JSONDecodeError:
             msg = detail or exc.reason
         raise RuntimeError(f'Cloudflare AI error: {msg}') from exc
+    except error.URLError as exc:
+        reason = str(getattr(exc, 'reason', exc))
+        if 'timed out' in reason.lower() or 'timeout' in reason.lower():
+            raise RuntimeError('模型回應逾時，請稍後重試。') from exc
+        raise RuntimeError(f'Upstream error: {reason}') from exc
 
     message = ((data.get('choices') or [{}])[0].get('message') or {})
     content = message.get('content')
@@ -181,15 +238,19 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         try:
-            content = call_model(payload, retry=False)
+            compact = compact_payload(payload)
+            content = call_model(compact)
+            # 不再二次请求：误杀会导致用户空等两倍时间。硬违禁才拒绝。
             if violates_rules(content):
-                content = call_model(payload, retry=True)
-                if violates_rules(content):
-                    self._send_json(502, {'error': 'AI 輸出含不宜表述，已拒絕返回，請稍後重試。'})
-                    return
+                sys.stderr.write('chart-ai: forbidden hit, reject\n')
+                self._send_json(502, {'error': 'AI 輸出含不宜表述，已拒絕返回，請稍後重試。'})
+                return
             self._send_json(200, {'content': content})
         except Exception as exc:  # noqa: BLE001
-            self._send_json(502, {'error': str(exc)})
+            msg = str(exc)
+            if 'timed out' in msg.lower() or 'timeout' in msg.lower():
+                msg = '模型回應逾時，請稍後重試。'
+            self._send_json(502, {'error': msg})
 
 
 def main() -> None:

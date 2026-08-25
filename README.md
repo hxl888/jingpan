@@ -79,7 +79,7 @@ npm run build:data
 VITE_CHART_AI_API=/api/chart-ai-reading
 ```
 
-生产环境经 SPA 服务把 `/api/chart-ai-reading` 反代到本机 `8787` 端口，无需跨域。
+生产环境经 SPA 服务把 `/api/chart-ai-reading` 反代到本机 `8787` 端口，无需跨域。本地 `yarn dev` 时 Vite 同样把该路径代理到 `127.0.0.1:8787`。
 
 ### 服务端代理
 
@@ -89,10 +89,12 @@ cp server/.env.example server/.env
 bash scripts/deploy-chart-ai.sh
 ```
 
-或手动：
+或本地开发：
 
 ```bash
-python3 server/chart_ai_proxy.py   # 本地开发，默认 127.0.0.1:8787
+python3 server/chart_ai_proxy.py   # 默认 127.0.0.1:8787
+# 另开终端
+yarn dev
 ```
 
 生产使用 `scripts/chart-ai-proxy.service`（Python，无需 Node）。`scripts/spa-server.py` 已支持同源 API 转发。

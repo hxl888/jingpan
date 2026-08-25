@@ -1,9 +1,25 @@
 import { ref, readonly } from 'vue';
 
-export type SkeletonType = 'list' | 'detail' | 'tool';
+/** 与路由 name 对齐的页面轮廓骨架 */
+export type SkeletonType =
+  | 'home'
+  | 'chart'
+  | 'book'
+  | 'yijing'
+  | 'yijing-detail'
+  | 'star-dict'
+  | 'star-dict-detail'
+  | 'pattern-dict'
+  | 'luopan'
+  | 'almanac'
+  | 'naming'
+  | 'liuren'
+  | 'yaogua'
+  | 'about';
 
-const isLoading = ref(false);
-const skeletonType = ref<SkeletonType>('list');
+/** 首屏默认 true，避免硬刷新时懒加载 chunk 未到出现白屏 */
+const isLoading = ref(true);
+const skeletonType = ref<SkeletonType>('home');
 const progress = ref(0);
 
 let generation = 0;
@@ -32,7 +48,7 @@ function startClimb(gen: number) {
   }, 120);
 }
 
-function start(type: SkeletonType = 'list') {
+function start(type: SkeletonType = 'home') {
   generation += 1;
   const gen = generation;
   clearTimers();

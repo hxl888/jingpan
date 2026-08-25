@@ -60,27 +60,27 @@
         </nav>
 
         <div v-if="isPc" class="tools">
-          <button type="button" class="tool" @click="store.toggleScript">
-            {{ store.script === 'hant' ? display('繁／簡', false) : '繁/简' }}
+          <button type="button" class="tool tool-script" @click="store.toggleScript">
+            {{ display('繁/簡', false) }}
           </button>
           <button type="button" class="tool" @click="store.toggleTheme">
             {{ display(store.isDark ? '宣紙' : '夜空', false) }}
           </button>
-          <button type="button" class="tool" @click="store.bumpFont(-1)">A-</button>
-          <button type="button" class="tool" @click="store.bumpFont(1)">A+</button>
-          <button type="button" class="tool" @click="handleCopy">{{ display('複製', false) }}</button>
+          <button v-if="showFontTools" type="button" class="tool" @click="store.bumpFont(-1)">A-</button>
+          <button v-if="showFontTools" type="button" class="tool" @click="store.bumpFont(1)">A+</button>
+          <button v-if="showFontTools" type="button" class="tool" @click="handleCopy">{{ display('複製', false) }}</button>
         </div>
 
         <div v-else class="tools tools-h5">
-          <button type="button" class="tool" @click="store.toggleScript">
-            {{ store.script === 'hant' ? display('繁／簡', false) : '繁/简' }}
+          <button type="button" class="tool tool-script" @click="store.toggleScript">
+            {{ display('繁/簡', false) }}
           </button>
           <button type="button" class="tool" @click="store.toggleTheme">
             {{ display(store.isDark ? '宣紙' : '夜空', false) }}
           </button>
-          <button type="button" class="tool" @click="store.bumpFont(-1)">A-</button>
-          <button type="button" class="tool" @click="store.bumpFont(1)">A+</button>
-          <button type="button" class="tool" @click="handleCopy">{{ display('複製', false) }}</button>
+          <button v-if="showFontTools" type="button" class="tool" @click="store.bumpFont(-1)">A-</button>
+          <button v-if="showFontTools" type="button" class="tool" @click="store.bumpFont(1)">A+</button>
+          <button v-if="showFontTools" type="button" class="tool" @click="handleCopy">{{ display('複製', false) }}</button>
           <button
             type="button"
             class="burger"
@@ -102,6 +102,7 @@ import { useRoute } from 'vue-router';
 import { useAppStore } from '@/store/app';
 import { useDisplayText } from '@/composables/useDisplayText';
 import { useDevice } from '@/composables/useDevice';
+import { useFontTools } from '@/composables/useFontTools';
 import { copySelection } from '@/utils/copy';
 import {
   SITE_NAV,
@@ -119,6 +120,7 @@ export default defineComponent({
     const route = useRoute();
     const { display } = useDisplayText();
     const { isPc, deviceClass } = useDevice();
+    const { showFontTools } = useFontTools();
     const drawerOpen = ref(false);
     const openKey = ref('');
     const navs = SITE_NAV;
@@ -175,6 +177,7 @@ export default defineComponent({
       display,
       navs,
       handleCopy,
+      showFontTools,
       isPc,
       deviceClass,
       drawerOpen,
@@ -325,6 +328,12 @@ export default defineComponent({
 .tool:hover {
   border-color: var(--zw-gold);
   color: var(--zw-primary);
+}
+.tool-script {
+  min-width: 3.6em;
+  text-align: center;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
 }
 .burger {
   width: 42px;

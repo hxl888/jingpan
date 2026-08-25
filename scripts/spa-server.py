@@ -18,6 +18,18 @@ class SpaHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
 
+    def end_headers(self) -> None:
+        # HTML 入口不缓存，避免刷新仍用旧壳；带 hash 的 /assets/ 可长期缓存
+        path = self.path.split("?", 1)[0].split("#", 1)[0]
+        name = os.path.basename(path) or "index.html"
+        ext = os.path.splitext(name)[1].lower()
+        if ext in {".html", ".htm"} or name in {"index.html", "index.htm"}:
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
+        elif path.startswith("/assets/"):
+            self.send_header("Cache-Control", "public, max-age=31536000, immutable")
+        super().end_headers()
+
     def _api_path(self) -> str:
         return self.path.split("?", 1)[0]
 
@@ -27,7 +39,7 @@ class SpaHandler(SimpleHTTPRequestHandler):
         headers = {"Content-Type": self.headers.get("Content-Type", "application/json")}
         req = request.Request(CHART_AI_UPSTREAM, data=body, headers=headers, method=self.command)
         try:
-            with request.urlopen(req, timeout=120) as upstream:
+            with request.urlopen(req, timeout=300) as upstream:
                 payload = upstream.read()
                 self.send_response(upstream.status)
                 for key, val in upstream.headers.items():
@@ -42,7 +54,10 @@ class SpaHandler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(payload)
         except Exception as exc:  # noqa: BLE001
-            msg = json_error(str(exc))
+            detail = str(exc)
+            if 'timed out' in detail.lower():
+                detail = '模型回應逾時，請稍後重試。'
+            msg = json_error(detail)
             self.send_response(502)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.end_headers()
