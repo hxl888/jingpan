@@ -117,6 +117,7 @@ import { computeTrueSolar } from '@/utils/trueSolar';
 import { matchPatterns } from '@/utils/patternMatch';
 import { extractExcerpts } from '@/utils/excerpt';
 import { buildPalaceReadings } from '@/utils/palaceReading';
+import { upgradeQuoteVernacular } from '@/utils/bookVernacular';
 import { fetchChartAiReading, isChartAiConfigured } from '@/api/chartAi';
 import { buildChartAiPayload, hasChartAiMaterial } from '@/utils/chartAiPayload';
 import { useAppStore } from '@/store/app';
@@ -171,7 +172,12 @@ export default defineComponent({
       return palacesWithHoroscope(_data.chart.astrolabe, _data.chart.palaces, _data.targetDate);
     });
 
-    const readings = computed(() => buildPalaceReadings(displayPalaces.value));
+    const readings = computed(() =>
+      buildPalaceReadings(displayPalaces.value).map((reading) => ({
+        ...reading,
+        quotes: reading.quotes.map((q) => upgradeQuoteVernacular(q)),
+      })),
+    );
 
     const cardStyle = {
       background: 'var(--zw-paper)',

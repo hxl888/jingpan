@@ -1,8 +1,10 @@
 import type { ChartPalace, ChartStar, PalaceReading, ReadingQuote } from '@/types';
 import {
   FAWEI_PALACE_QUOTES,
+  FAWEI_LINES,
   MING_VERSES,
   PALACE_STAR_QUOTES,
+  SHIXIAN_VERSES,
   SIHUA_QUOTES,
   STAR_OPENINGS,
   toReadingQuote,
@@ -56,7 +58,7 @@ const PALACE_NAME_TO_KEY: Record<string, PalaceKey> = {
   父母: 'fumu',
 };
 
-function palaceKeyOf(name: string): PalaceKey | '' {
+export function palaceKeyOf(name: string): PalaceKey | '' {
   if (PALACE_NAME_TO_KEY[name]) return PALACE_NAME_TO_KEY[name];
   const hit = Object.keys(PALACE_NAME_TO_KEY).find((k) => name.includes(k));
   return hit ? PALACE_NAME_TO_KEY[hit] : '';
@@ -151,8 +153,21 @@ export function buildPalaceReadings(palaces: ChartPalace[]): PalaceReading[] {
       pickRecords(FAWEI_PALACE_QUOTES, palace, key).forEach((r) => pushUnique(quotes, toReadingQuote(r)));
       if (key === 'ming') {
         pickRecords(MING_VERSES, palace, key).forEach((r) => pushUnique(quotes, toReadingQuote(r)));
+        pickRecords(SHIXIAN_VERSES, palace, key).forEach((r) => pushUnique(quotes, toReadingQuote(r)));
       }
     }
+
+    // 發微論文句：有星曜/宮位條件的才選入
+    FAWEI_LINES.filter((r) => {
+      if (r.palaces?.length && key && !r.palaces.includes(key)) return false;
+      if (r.stars?.length && !starMatch(r.stars, starNames(palace))) return false;
+      if (r.needSha && !hasSha(palace)) return false;
+      if (!r.stars?.length && !r.palaces?.length && !r.needSha) return false;
+      return true;
+    }).forEach((r) => {
+      if (quotes.length >= 8) return;
+      pushUnique(quotes, toReadingQuote(r));
+    });
 
     const majors = palace.majorStars.map((s) => s.name);
     const minors = palace.minorStars.map((s) => s.name);

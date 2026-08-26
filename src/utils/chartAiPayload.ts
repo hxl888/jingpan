@@ -1,7 +1,17 @@
 import type { BuiltChart } from '@/utils/chart';
-import type { ChartPalace, ExcerptItem, MatchedPattern, PalaceReading } from '@/types';
+import type { ChartPalace, ChartStar, ExcerptItem, MatchedPattern, PalaceReading } from '@/types';
+import { collectChartBookQuotes, resolveVernacular } from '@/utils/bookVernacular';
 
 const BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const;
+
+/** 星曜带庙旺、四化，便于模型写细 */
+export interface ChartAiStar {
+  name: string;
+  /** 庙/旺/得/利/平/不/陷 等，空则省略 */
+  brightness?: string;
+  /** 禄/权/科/忌 等，空则省略 */
+  mutagen?: string;
+}
 
 export interface ChartAiDecade {
   /** 如 5-14 */
@@ -10,12 +20,12 @@ export interface ChartAiDecade {
   end: number;
   /** 该大限落在的宫位主题名（别名优先） */
   themePalace: string;
-  stars: string[];
+  stars: ChartAiStar[];
 }
 
 export interface ChartAiSanFangCorner {
   palace: string;
-  stars: string[];
+  stars: ChartAiStar[];
 }
 
 export interface ChartAiNearTermYear {
@@ -25,7 +35,7 @@ export interface ChartAiNearTermYear {
   isCurrent: boolean;
   decadeRange: string;
   themePalace: string;
-  stars: string[];
+  stars: ChartAiStar[];
 }
 
 export interface ChartAiNearTerm {
@@ -54,7 +64,10 @@ export interface ChartAiPayload {
   palaces: Array<{
     name: string;
     aliasName: string;
-    stars: string[];
+    heavenlyStem?: string;
+    earthlyBranch?: string;
+    isBodyPalace?: boolean;
+    stars: ChartAiStar[];
   }>;
   /** 按年龄排序的各大限段 */
   decades: ChartAiDecade[];
@@ -77,10 +90,25 @@ export interface ChartAiPayload {
     vernacular: string;
     source?: string;
   }>;
+  /** 卷一已錄入摘句：古文 + 白話，供 AI 與命盤解讀共用 */
+  bookQuotes: Array<{
+    bookId: string;
+    source: string;
+    palace?: string;
+    classic: string;
+    vernacular: string;
+  }>;
 }
 
-function palaceStars(p: ChartPalace): string[] {
-  return [...p.majorStars, ...p.minorStars, ...p.adjectiveStars].map((s) => s.name);
+function formatStar(s: ChartStar): ChartAiStar {
+  const out: ChartAiStar = { name: s.name };
+  if (s.brightness?.trim()) out.brightness = s.brightness.trim();
+  if (s.mutagen?.trim()) out.mutagen = s.mutagen.trim();
+  return out;
+}
+
+function palaceStars(p: ChartPalace): ChartAiStar[] {
+  return [...p.majorStars, ...p.minorStars, ...p.adjectiveStars].map(formatStar);
 }
 
 function findByBranch(palaces: ChartPalace[], branch: string): ChartPalace | undefined {
@@ -154,7 +182,7 @@ function buildNearTerm(solarDate: string, decades: ChartAiDecade[]): ChartAiNear
       isCurrent: year === currentYear,
       decadeRange: hit?.range || '',
       themePalace: hit?.themePalace || '',
-      stars: hit ? hit.stars.slice(0, 8) : [],
+      stars: hit ? hit.stars.slice(0, 12) : [],
     });
   }
   return { fromYear, toYear, currentYear, years };
@@ -183,6 +211,9 @@ export function buildChartAiPayload(input: {
     palaces: palaces.map((p) => ({
       name: p.name,
       aliasName: p.aliasName,
+      heavenlyStem: p.heavenlyStem,
+      earthlyBranch: p.earthlyBranch,
+      isBodyPalace: p.isBodyPalace,
       stars: palaceStars(p),
     })),
     decades,
@@ -201,14 +232,20 @@ export function buildChartAiPayload(input: {
       r.quotes
         .map((q) => ({
           palace: r.aliasName,
-          vernacular: (q.vernacular || '').trim(),
+          vernacular: resolveVernacular(q.classic, (q.vernacular || '').trim()),
           source: q.cite.title,
         }))
         .filter((q) => q.vernacular.length > 0),
     ),
+    bookQuotes: collectChartBookQuotes(palaces),
   };
 }
 
 export function hasChartAiMaterial(payload: ChartAiPayload): boolean {
-  return payload.patterns.length > 0 || payload.excerpts.length > 0 || payload.palaceReadings.length > 0;
+  return (
+    payload.patterns.length > 0 ||
+    payload.excerpts.length > 0 ||
+    payload.palaceReadings.length > 0 ||
+    payload.bookQuotes.length > 0
+  );
 }

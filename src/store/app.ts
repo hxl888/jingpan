@@ -8,7 +8,7 @@ const LEGACY_STORAGE_KEY = 'zw-site-prefs';
 const FONT_MIN = 14;
 const FONT_MAX = 28;
 const DEFAULT_THEME: ThemeMode = 'xuanpaper';
-const DEFAULT_SCRIPT: ScriptMode = 'hant';
+const DEFAULT_SCRIPT: ScriptMode = 'hans';
 const DEFAULT_FONT = 18;
 
 export const useAppStore = defineStore('app', () => {

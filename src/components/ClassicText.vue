@@ -6,13 +6,31 @@
       </h3>
       <p v-else-if="block.type === 'label'" class="my-2 font-semibold">{{ display(block.text ?? '') }}</p>
       <blockquote v-else-if="block.type === 'quote'" class="quote-block">
-        {{ display(block.text ?? '') }}
+        <ClassicSentences
+          :text="block.text ?? ''"
+          :chapter-id="chapterId"
+          :show-vernacular="showVernacular"
+        />
       </blockquote>
       <p v-else-if="block.type === 'song-label'" class="mt-3 font-semibold text-gold">
         {{ display(block.text ?? '') }}
       </p>
-      <div v-else-if="block.type === 'song'" class="song-card">{{ formatSong(display(block.text ?? '')) }}</div>
-      <p v-else-if="block.type === 'answer'" class="my-3 whitespace-pre-wrap">{{ display(block.text ?? '') }}</p>
+      <div v-else-if="block.type === 'song'" class="song-card">
+        <ClassicSentences
+          :text="formatSong(block.text ?? '')"
+          :chapter-id="chapterId"
+          :show-vernacular="showVernacular"
+          multiline
+        />
+      </div>
+      <div v-else-if="block.type === 'answer'" class="my-3">
+        <ClassicSentences
+          :text="block.text ?? ''"
+          :chapter-id="chapterId"
+          :show-vernacular="showVernacular"
+          multiline
+        />
+      </div>
       <figure v-else-if="block.type === 'palace-chart'" class="palace-wrap">
         <figcaption v-if="block.title" class="palace-title">{{ display(block.title) }}</figcaption>
         <div class="palace-board" role="img" :aria-label="display(block.title ?? '十二宮圖', false)">
@@ -49,7 +67,14 @@
           </table>
         </div>
       </figure>
-      <p v-else class="my-3 whitespace-pre-wrap">{{ display(block.text ?? '') }}</p>
+      <div v-else class="my-3">
+        <ClassicSentences
+          :text="block.text ?? ''"
+          :chapter-id="chapterId"
+          :show-vernacular="showVernacular"
+          multiline
+        />
+      </div>
     </template>
   </article>
 </template>
@@ -57,16 +82,26 @@
 <script lang="ts">
 import { defineComponent, type PropType } from 'vue';
 import type { BookBlock } from '@/types';
+import ClassicSentences from '@/components/ClassicSentences.vue';
 import { useDisplayText } from '@/composables/useDisplayText';
 
 const PALACE_POS = ['巳', '午', '未', '申', '酉', '戌', '亥', '子', '丑', '寅', '卯', '辰'];
 
 export default defineComponent({
   name: 'ClassicText',
+  components: { ClassicSentences },
   props: {
     blocks: {
       type: Array as PropType<BookBlock[]>,
       required: true,
+    },
+    chapterId: {
+      type: String,
+      default: '',
+    },
+    showVernacular: {
+      type: Boolean,
+      default: false,
     },
   },
   setup() {
@@ -105,7 +140,7 @@ export default defineComponent({
   letter-spacing: 0.12em;
 }
 .palace-hint {
-  margin: 8px 0 0;
+  margin: 0.35rem 0 0;
   font-size: 12px;
   color: var(--zw-muted);
   text-align: center;

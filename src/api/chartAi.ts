@@ -17,7 +17,7 @@ export async function fetchChartAiReading(payload: ChartAiPayload): Promise<stri
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(150_000),
+      signal: AbortSignal.timeout(200_000),
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === 'TimeoutError') {

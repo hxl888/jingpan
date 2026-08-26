@@ -78,16 +78,22 @@
             <el-button type="primary" :disabled="aiLoading" @click="$emit('generate-ai')">
               {{ display('生成解讀說明', false) }}
             </el-button>
+            <span class="ai-wait-hint">
+              {{ display('生成較耗時（約一至兩分鐘），請稍候，勿切換或離開本頁。', false) }}
+            </span>
           </div>
-          <div v-if="aiLoading" class="ai-loading">
+          <div v-if="aiLoading && !aiContent" class="ai-loading">
             <el-icon class="is-loading"><Loading /></el-icon>
-            <span>{{ display('正在整理本盤材料…', false) }}</span>
+            <span>{{ display('正在整理本盤材料，請耐心等待，勿關閉或切換頁面…', false) }}</span>
           </div>
           <p v-if="aiError" class="ai-error">{{ aiError }}</p>
           <div v-if="aiError && !aiLoading" class="ai-actions">
             <el-button type="primary" plain @click="$emit('generate-ai')">
               {{ display('重試', false) }}
             </el-button>
+            <span class="ai-wait-hint">
+              {{ display('生成較耗時（約一至兩分鐘），請稍候，勿切換或離開本頁。', false) }}
+            </span>
           </div>
           <article v-if="aiContent" class="ai-result">
             <div class="ai-toolbar">
@@ -95,6 +101,13 @@
               <el-button size="small" plain :disabled="aiLoading" @click="$emit('generate-ai')">
                 {{ display('重新生成', false) }}
               </el-button>
+              <span v-if="!aiLoading" class="ai-wait-hint">
+                {{ display('重新生成約需一至兩分鐘，請勿切換頁面。', false) }}
+              </span>
+            </div>
+            <div v-if="aiLoading" class="ai-loading compact">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              <span>{{ display('正在重新生成，請稍候，勿離開本頁…', false) }}</span>
             </div>
             <pre class="ai-body">{{ display(aiContent, false) }}</pre>
           </article>
@@ -273,7 +286,19 @@ export default defineComponent({
   padding-left: 10px;
 }
 .ai-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
   margin-bottom: 12px;
+}
+.ai-wait-hint {
+  flex: 1 1 10rem;
+  font-size: 0.68em;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--zw-muted) 78%, transparent);
+  letter-spacing: 0.02em;
+  opacity: 0.92;
 }
 .ai-loading {
   display: flex;
@@ -282,6 +307,10 @@ export default defineComponent({
   font-size: 0.85em;
   color: var(--zw-muted);
   margin-bottom: 12px;
+}
+.ai-loading.compact {
+  margin-top: 0;
+  margin-bottom: 10px;
 }
 .ai-error {
   font-size: 0.85em;
@@ -296,6 +325,7 @@ export default defineComponent({
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
   margin-bottom: 12px;
 }
 .ai-body {

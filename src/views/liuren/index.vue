@@ -118,7 +118,7 @@
       <div v-if="result" class="ai-panel">
         <h3>{{ display('AI 解讀', false) }}</h3>
         <p class="ai-hint">
-          {{ display('可選填所問事項；AI 給傾向說明，僅供參考，不作唯一決策依據。', false) }}
+          {{ display('請先填寫所問事項；AI 給傾向說明，僅供參考，不作唯一決策依據。', false) }}
         </p>
         <el-input
           v-model="aiQuestion"
@@ -126,8 +126,12 @@
           :rows="2"
           maxlength="120"
           show-word-limit
-          :placeholder="display('所問事項（選填）', false)"
+          :placeholder="display('請輸入所問事項', false)"
+          :class="{ 'is-empty-hint': aiQuestionNeedHint }"
         />
+        <p v-if="aiQuestionNeedHint" class="ai-field-hint">
+          {{ display('請先填寫所問事項再生成。', false) }}
+        </p>
         <div class="ai-actions">
           <el-button
             type="primary"
@@ -137,7 +141,13 @@
           >
             {{ display('生成解讀', false) }}
           </el-button>
+          <span class="ai-wait-hint">
+            {{ display('生成較耗時（約一至兩分鐘），請稍候，勿切換或離開本頁。', false) }}
+          </span>
         </div>
+        <p v-if="aiLoading" class="ai-wait-hint is-loading">
+          {{ display('正在生成中，請耐心等待，勿關閉或切換頁面…', false) }}
+        </p>
         <p v-if="!aiConfigured" class="ai-hint">{{ display('AI 解讀服務尚未配置。', false) }}</p>
         <p v-if="aiError" class="ai-error">{{ aiError }}</p>
         <pre v-if="aiContent" class="ai-body">{{ display(aiContent, false) }}</pre>
@@ -168,7 +178,7 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref } from 'vue';
+import { computed, defineComponent, ref, watch } from 'vue';
 import { Solar } from 'lunar-typescript';
 import { ElMessage } from 'element-plus';
 import contentJson from '@/data/liurenContent.json';
@@ -200,9 +210,14 @@ export default defineComponent({
     const previewIndex = ref(0);
     const aiConfigured = isDivinationAiConfigured();
     const aiQuestion = ref('');
+    const aiQuestionNeedHint = ref(false);
     const aiLoading = ref(false);
     const aiError = ref('');
     const aiContent = ref('');
+
+    watch(aiQuestion, (v) => {
+      if (v.trim()) aiQuestionNeedHint.value = false;
+    });
 
     const monthOptions = computed(() =>
       Array.from({ length: 12 }, (_, i) => ({
@@ -276,6 +291,7 @@ export default defineComponent({
       result.value = null;
       previewIndex.value = 0;
       aiQuestion.value = '';
+      aiQuestionNeedHint.value = false;
       clearAi();
       ElMessage.info(display('已重置', false));
     };
@@ -286,6 +302,15 @@ export default defineComponent({
         ElMessage.warning(display('AI 解讀服務尚未配置', false));
         return;
       }
+      if (!aiQuestion.value.trim()) {
+        aiQuestionNeedHint.value = true;
+        ElMessage.warning({
+          message: display('請先填寫所問事項', false),
+          duration: 500,
+        });
+        return;
+      }
+      aiQuestionNeedHint.value = false;
       aiLoading.value = true;
       aiError.value = '';
       try {
@@ -324,6 +349,7 @@ export default defineComponent({
       handActive,
       aiConfigured,
       aiQuestion,
+      aiQuestionNeedHint,
       aiLoading,
       aiError,
       aiContent,
@@ -529,11 +555,37 @@ h1 {
   line-height: 1.55;
   color: var(--zw-muted);
 }
+.ai-field-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: #8a2f2f;
+  letter-spacing: 0.02em;
+}
+.ai-panel :deep(.is-empty-hint .el-textarea__inner) {
+  border-color: color-mix(in srgb, #8a2f2f 55%, var(--zw-line));
+}
 .ai-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
   margin: 0.65rem 0 0.35rem;
+}
+.ai-wait-hint {
+  margin: 0;
+  flex: 1 1 10rem;
+  font-size: 0.68rem;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--zw-muted) 78%, transparent);
+  letter-spacing: 0.02em;
+  opacity: 0.92;
+}
+.ai-wait-hint.is-loading {
+  margin-top: 0.35rem;
+  font-size: 0.72rem;
+  color: color-mix(in srgb, var(--zw-primary) 70%, var(--zw-muted));
+  opacity: 1;
 }
 .ai-error {
   margin: 0.5rem 0 0;

@@ -65,47 +65,49 @@ CLASSIC_IN_VERNA = re.compile(
     r'据《[^》]+》|據《[^》]+》|《[^》]{1,16}》'
 )
 
-SYSTEM_PROMPT = """你是「经盘」给普通人看的白话讲解助手。根据 JSON 写一篇详细、连贯的现代白话人生总览。
+SYSTEM_PROMPT = """你是「经盘」的细读助手：像一位熟识这盘材料的人，对着「这一位」把人生讲细、讲具体。只根据 JSON，写成现代白话。
 
 绝对禁止（出现即失败）：
-- 任何文言原句、古诀、半文半白、「古书说/古人说/古诀云」、书名号引文
-- 按宫位逐条讲解（禁止「命宫：」「兄弟：」「夫妻宫：」「## 分宫要点」「## 材料串讲」「## 命盘概述」）
-- 祸福断语、开运改命、宜忌、命运好坏评判
+- 文言原句、古诀、半文半白、「古书说/古人说/古诀云」、书名号引文
+- 按宫名逐条清单（禁止「命宫：」「夫妻宫：」「## 分宫要点」「## 材料串讲」「## 命盘概述」）
+- 祸福断语、开运改命、宜忌、命运好坏总评；禁止「必嫁/必生/一定几岁」等硬断
 - 医疗诊断、就医指令、投资理财指令、法律行动建议
+- 套话与千篇一律：禁止「整体呈现出」「从命盘结构来看」「这意味着他」「这表明他」这类公文腔；禁止只罗列星名而不落到生活场景
 
-必须做到：
-1. 只用 JSON 里的信息；不编造未给出的星曜、年龄或年份。
-2. 全文现代白话、通俗易懂、详细、段落连贯，像在讲同一个人。
-3. 把 sanFangMing（四面星曜）融进性格与人生总览，用「自身、对外发展、事业钱财、内心」等说法，不要强调宫名。
-4. 按 decades 逐段写人生阶段：标题只用年龄（如 ### 6-15岁），写这段关注什么、容易遇到什么问题或压力；用 lifeTheme 作主题，不要写宫名标题。
-5. 必须写四个专题（婚姻感情、工作事业、健康与家人、财运与资源）：依据 topics 与 notes / patternNames / sanFangMing，用生活主题写法，禁止宫名清单。
-   - 婚姻感情：亲密关系、相处与牵挂等倾向。
-   - 工作事业：职责、协作、对外发展等关注点。
-   - 健康与家人：本人身心压力（topics.health.self）与长辈/家人相关关注（topics.health.family）；只写关注与压力倾向，不作诊断。
-   - 财运与资源：钱财与资源聚散、压力与习惯（topics.wealth.money）；可带家庭资产倾向（topics.wealth.assets）；不作投资建议。
-6. 必须写「近前后五年」：依据 nearTerm（当前年前后各约 5 年）。用白话分「过去五年左右 / 眼下 / 未来五年左右」三段；每段结合 years 的 age、lifeTheme、stars，并点到婚姻、工作、健康与家人、财运四方面中有材料可写的部分；材料不足则略写，勿编造。不要吉凶断语，不要宫名清单。
-7. notes 里已是白话要点，直接消化进叙事，不要再提出处。
-8. 控制篇幅：总览+性格约 350～600 字；每个大限年龄段 60～120 字；每个专题 80～150 字；近前后五年合计 280～450 字。
+写作目标（本盘必须「像只写给这一位」，换盘要明显不同）：
+1. 只用 JSON；不编造未给出的星曜、年龄、年份。材料不足处写「从本盘不易具体推到」，勿硬编。
+2. 抓住本盘独特组合：meta（性别、五行局、命主/身主）、sanFangMing、topics 里各主题星曜的 brightness（庙旺陷等）与 mutagen（禄权科忌）、patternNames、notes。不同星组→不同相处方式、压力点、转机，禁止写成通用性格模板。
+3. 少堆星名：星名最多点一两次当线索，重点写「落到生活里会怎样」——容易怎么选择、怎么卡住、跟谁容易起摩擦、哪类事会反复出现。像细说一个人，不像写说明书。
+4. 性格与处世：结合四面星曜写具体习惯与反差（对外怎样、对内怎样、压力下怎样），避免空泛「追求荣誉/辅助他人」式标签。
+5. 人生阶段：按 decades 逐段，标题只用年龄（### 6-15岁）；用 lifeTheme，不写宫名标题。每段写出该十年「具体在忙什么、容易踩什么坑、跟上一阶段怎么不同」；星曜有 brightness/mutagen 时要用来区分力度（如庙旺更显、陷地更吃力、化忌更纠结）。写完最后一个 decade 后另起一小段（无 ###）：材料写到约 lastDecadeEnd 岁为止，之后长短与境遇无法据此断定，切勿理解成「只能活到该年龄」。
+6. 四个专题写细（生活主题，禁止宫名清单）：
+   - 婚姻感情：相处模式、吸引/冲突点、婚后容易卡在哪；并做软语气倾向推估（较容易／约／前后／偏向）——成家年龄区间、生育年龄区间、子女数量与男女倾向（看 topics.marriage / topics.children / decades 中亲密关系主题段与 notes）。不足则明说不易推到。
+   - 工作事业：适合什么节奏与场景、升迁/变动压力、与人协作的具体卡点（topics.career）。
+   - 健康与家人：身心容易累在哪、与长辈/家人互动倾向（topics.health）；只写关注与压力，不作诊断。
+   - 财运与资源：钱怎么来、怎么散、守财习惯与家庭资产压力（topics.wealth）；不作投资建议。
+7. 近前后五年：依 nearTerm 分「过去五年左右 / 眼下 / 未来五年左右」；结合 age、lifeTheme、stars，写这几年婚姻/工作/健康家人/财运里「具体会碰到什么」，勿空泛复读大限主题。
+8. notes、bookQuotes（卷一全量今译摘句，优先于旧摘句库）、patterns 消化进叙事，不要提出处、不要照抄格局原文；优先依据 bookQuotes 与 notes 写细。
+9. 篇幅：不设字数上限。写够细节即可；宁可一段写透，也不要空洞短句凑结构。仍保持可读，不要无意义重复。
 
-固定 Markdown 结构（标题必须一字不差用下面这些）：
+固定 Markdown 结构（标题一字不差）：
 ## 人物总览
 ## 性格与处世
 ## 人生阶段
 ### {range}岁
-（每个 decade 一节）
+（每个 decade 一节；全部写完后紧接「之后说明」小段）
 ## 婚姻感情
 ## 工作事业
 ## 健康与家人
 ## 财运与资源
 ## 近前后五年
-（过去五年 / 眼下 / 未来五年；四方面有材料则点到）
 ## 结尾说明
 （本站只作材料研习参考，不提供吉凶预测或改运建议）"""
 
 RETRY_HINT = (
-    '上一稿不合格。请重写：全文只能是现代白话；禁止古书/古人/古诀/引文；'
-    '禁止分宫清单；必须含「## 人物总览」「## 人生阶段」与四个专题标题'
-    '（婚姻感情、工作事业、健康与家人、财运与资源），并按 decades 的年龄分段。'
+    '上一稿不合格。请重写：全文现代白话；禁止古书/古人/古诀/引文与公文套话；'
+    '禁止分宫清单与只罗列星名；必须含「## 人物总览」「## 人生阶段」与四个专题；'
+    '每盘写细、写具体生活场景，突出本盘星曜组合的独特性；'
+    '人生阶段末须说明之后岁月不确定；婚姻须含软语气成家／生育／子女倾向推估。'
 )
 
 DIVINATION_FORBIDDEN = re.compile(
@@ -194,8 +196,28 @@ def life_theme(palace_name: str) -> str:
     return '人生议题'
 
 
+def normalize_stars(raw: object, limit: int = 14) -> list:
+    """接受 string[] 或 {name,brightness,mutagen}[]，统一成紧凑对象列表。"""
+    if not isinstance(raw, list):
+        return []
+    out: list = []
+    for item in raw[:limit]:
+        if isinstance(item, dict) and item.get('name'):
+            row: dict = {'name': str(item['name'])}
+            b = str(item.get('brightness') or '').strip()
+            m = str(item.get('mutagen') or '').strip()
+            if b:
+                row['brightness'] = b
+            if m:
+                row['mutagen'] = m
+            out.append(row)
+        elif item:
+            out.append({'name': str(item)})
+    return out
+
+
 def compact_payload(body: dict) -> dict:
-    """只送给模型白话要点 + 星曜结构；不传古文原文，避免模型照抄。"""
+    """送给模型：星曜结构（含庙旺四化）+ 白话要点；不传古文原文。"""
     meta_in = body.get('meta') if isinstance(body.get('meta'), dict) else {}
     meta = {
         k: meta_in[k]
@@ -209,15 +231,12 @@ def compact_payload(body: dict) -> dict:
     for item in (body.get('decades') or [])[:12]:
         if not isinstance(item, dict):
             continue
-        # 控制输出长度：默认写到约 85 岁，降低超时
+        # 控制超时：默认写到约 85 岁
         start = item.get('start')
         if isinstance(start, int) and start > 85:
             continue
         if len(decades) >= 8:
             break
-        stars = item.get('stars') or []
-        if not isinstance(stars, list):
-            stars = []
         theme_palace = str(item.get('themePalace') or '')
         decades.append(
             {
@@ -225,23 +244,20 @@ def compact_payload(body: dict) -> dict:
                 'start': item.get('start'),
                 'end': item.get('end'),
                 'lifeTheme': life_theme(theme_palace),
-                'stars': [str(s) for s in stars[:8]],
+                'stars': normalize_stars(item.get('stars'), 12),
             }
         )
 
     def corner(raw: object) -> dict:
         if not isinstance(raw, dict):
             return {'theme': '', 'stars': []}
-        stars = raw.get('stars') or []
-        if not isinstance(stars, list):
-            stars = []
         return {
             'theme': life_theme(str(raw.get('palace') or '')),
-            'stars': [str(s) for s in stars[:8]],
+            'stars': normalize_stars(raw.get('stars'), 12),
         }
 
     def palace_corner_by_names(names: tuple[str, ...]) -> dict | None:
-        """从 body.palaces 按宫名/别名取星曜，写成 theme+stars。"""
+        """从 body.palaces 按宫名/别名取星曜（含庙旺四化）。"""
         for item in body.get('palaces') or []:
             if not isinstance(item, dict):
                 continue
@@ -249,12 +265,10 @@ def compact_payload(body: dict) -> dict:
             raw_name = str(item.get('name') or '').strip()
             if not any(n in label or n in raw_name for n in names):
                 continue
-            stars = item.get('stars') or []
-            if not isinstance(stars, list):
-                stars = []
             return {
                 'theme': life_theme(label or raw_name),
-                'stars': [str(s) for s in stars[:8]],
+                'branch': str(item.get('earthlyBranch') or ''),
+                'stars': normalize_stars(item.get('stars'), 14),
             }
         return None
 
@@ -272,9 +286,15 @@ def compact_payload(body: dict) -> dict:
     marriage = palace_corner_by_names(('夫妻',))
     if marriage:
         topics['marriage'] = marriage
+    children = palace_corner_by_names(('子女',))
+    if children:
+        topics['children'] = children
     career = palace_corner_by_names(('事业', '事業', '官禄', '官祿'))
     if career:
         topics['career'] = career
+    friends = palace_corner_by_names(('交友', '仆役', '僕役'))
+    if friends:
+        topics['friends'] = friends
     health_self = palace_corner_by_names(('疾厄',))
     health_family = palace_corner_by_names(('父母',))
     if health_self or health_family:
@@ -294,18 +314,53 @@ def compact_payload(body: dict) -> dict:
             wealth['assets'] = wealth_assets
         topics['wealth'] = wealth
 
-    notes: list[str] = []
-    for item in (body.get('palaceReadings') or [])[:20]:
+    last_decade_end = None
+    if decades:
+        ends = [d.get('end') for d in decades if isinstance(d.get('end'), int)]
+        if ends:
+            last_decade_end = max(ends)
+
+    notes: list[dict] = []
+    for item in (body.get('palaceReadings') or [])[:28]:
         if not isinstance(item, dict):
             continue
         v = clean_vernacular(str(item.get('vernacular') or ''))
-        if len(v) >= 8:
-            notes.append(trim_text(v, 90))
+        if len(v) < 8:
+            continue
+        notes.append(
+            {
+                'palace': str(item.get('palace') or ''),
+                'text': trim_text(v, 140),
+            }
+        )
 
-    pattern_names = []
-    for item in (body.get('patterns') or [])[:6]:
-        if isinstance(item, dict) and item.get('name'):
-            pattern_names.append(str(item.get('name')))
+    book_quotes: list[dict] = []
+    for item in (body.get('bookQuotes') or [])[:48]:
+        if not isinstance(item, dict):
+            continue
+        classic = clean_vernacular(str(item.get('classic') or ''))
+        vern = clean_vernacular(str(item.get('vernacular') or ''))
+        if len(classic) < 4 or len(vern) < 6:
+            continue
+        book_quotes.append(
+            {
+                'source': str(item.get('source') or ''),
+                'palace': str(item.get('palace') or ''),
+                'classic': trim_text(classic, 72),
+                'vernacular': trim_text(vern, 120),
+            }
+        )
+
+    patterns_out: list[dict] = []
+    for item in (body.get('patterns') or [])[:8]:
+        if not isinstance(item, dict) or not item.get('name'):
+            continue
+        patterns_out.append(
+            {
+                'name': str(item.get('name')),
+                'condition': trim_text(str(item.get('condition') or ''), 80),
+            }
+        )
 
     near_raw = body.get('nearTerm') if isinstance(body.get('nearTerm'), dict) else None
     near_term = None
@@ -314,9 +369,6 @@ def compact_payload(body: dict) -> dict:
         for item in (near_raw.get('years') or [])[:11]:
             if not isinstance(item, dict):
                 continue
-            stars = item.get('stars') or []
-            if not isinstance(stars, list):
-                stars = []
             years_out.append(
                 {
                     'year': item.get('year'),
@@ -324,7 +376,7 @@ def compact_payload(body: dict) -> dict:
                     'isCurrent': bool(item.get('isCurrent')),
                     'decadeRange': item.get('decadeRange', ''),
                     'lifeTheme': life_theme(str(item.get('themePalace') or '')),
-                    'stars': [str(s) for s in stars[:6]],
+                    'stars': normalize_stars(item.get('stars'), 10),
                 }
             )
         near_term = {
@@ -339,9 +391,11 @@ def compact_payload(body: dict) -> dict:
         'sanFangMing': san_fang,
         'topics': topics or None,
         'decades': decades,
+        'lastDecadeEnd': last_decade_end,
         'nearTerm': near_term,
-        'patternNames': pattern_names,
-        'notes': notes[:16],
+        'patterns': patterns_out,
+        'notes': notes,
+        'bookQuotes': book_quotes,
     }
 
 
@@ -350,7 +404,7 @@ def has_material(body: dict) -> bool:
         val = body.get(key)
         return len(val) if isinstance(val, list) else 0
 
-    return count('excerpts') + count('patterns') + count('palaceReadings') > 0
+    return count('excerpts') + count('patterns') + count('palaceReadings') + count('bookQuotes') > 0
 
 
 def violates_rules(text: str) -> bool:
@@ -510,7 +564,8 @@ def call_model(
     )
 
     try:
-        with request.urlopen(req, timeout=100) as resp:
+        upstream_timeout = int(os.environ.get('CF_AI_TIMEOUT', '180'))
+        with request.urlopen(req, timeout=max(60, upstream_timeout)) as resp:
             data = json.loads(resp.read().decode('utf-8'))
     except error.HTTPError as exc:
         detail = exc.read().decode('utf-8', errors='replace')
@@ -569,7 +624,7 @@ class Handler(BaseHTTPRequestHandler):
                 200,
                 {
                     'ok': True,
-                    'prompt': 'vernacular-stages-topics-near-v4',
+                    'prompt': 'vernacular-detail-bookquotes-v8',
                     'divination': 'divination-ai-v1',
                 },
             )
@@ -582,7 +637,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             compact = compact_payload(payload)
-            content = call_model(compact)
+            content = call_model(compact, max_tokens=5200)
             if violates_rules(content):
                 sys.stderr.write('chart-ai: forbidden hit, reject\n')
                 self._send_json(502, {'error': 'AI 輸出含不宜表述，已拒絕返回，請稍後重試。'})

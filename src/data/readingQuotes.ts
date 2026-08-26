@@ -18,12 +18,17 @@ export interface QuoteRecord {
   mutagen?: string[];
   branches?: string[];
   needSha?: boolean;
-  topic: 'sanfang' | 'sihua' | 'star' | 'palace-star' | 'ming-verse' | 'fawei-palace';
+  topic: 'sanfang' | 'sihua' | 'star' | 'palace-star' | 'ming-verse' | 'fawei-palace' | 'fawei-line' | 'shixian-verse';
 }
 
 const CITE_WENDA = { sourceTitle: '諸星問答論', wikiHeading: '諸星問答論', bookId: 'zhuxing-wenda' };
 const CITE_FAWEI = { sourceTitle: '斗數發微論', wikiHeading: '斗數發微論', bookId: 'dou-shu-fawei-lun' };
 const CITE_DEDI = { sourceTitle: '十二宮諸星得地合格訣', wikiHeading: '十二宮諸星得地合格訣', bookId: 'shiergong-dedi' };
+const CITE_SHIXIAN = {
+  sourceTitle: '十二宮諸星失陷破格訣',
+  wikiHeading: '十二宮諸星失陷破格訣',
+  bookId: 'shiergong-shixian',
+};
 
 export const SANFANG_DEF: QuoteRecord = {
   topic: 'sanfang',
@@ -232,6 +237,296 @@ export const STAR_OPENINGS: QuoteRecord[] = [
     sourceTitle: '問右弼所主若何？',
     wikiHeading: '問右弼所主若何？',
     bookId: 'zhuxing-wenda',
+  },
+  {
+    topic: 'star',
+    stars: ['擎羊'],
+    classic: '擎羊北斗之助星。守身命性粗行暴，孤單，視親為疏，翻恩為怨。',
+    vernacular: '擎羊是北斗助星。守身命，古書說性子粗暴、易孤單，把親當疏、把恩當怨。',
+    ...CITE_WENDA,
+  },
+  {
+    topic: 'star',
+    stars: ['陀羅', '陀罗'],
+    classic: '陀羅北斗之助星。守身命心行不正，暗淚長流，性剛威猛，作事進退。',
+    vernacular: '陀羅是北斗助星。守身命，古書說心思不定、進退反覆，做事橫成橫破。',
+    ...CITE_WENDA,
+  },
+  {
+    topic: 'star',
+    stars: ['火星'],
+    classic: '火星乃南斗浮星也。',
+    vernacular: '火星是南斗浮星，主急躁、衝動與突发波折，落哪一宮就在哪一宮添火氣。',
+    ...CITE_WENDA,
+  },
+  {
+    topic: 'star',
+    stars: ['鈴星', '铃星'],
+    classic: '鈴星乃南斗助星也。',
+    vernacular: '鈴星是南斗助星，主驚擾、喧鬧與不安，常與火星並論。',
+    ...CITE_WENDA,
+  },
+  {
+    topic: 'star',
+    stars: ['天空'],
+    classic: '天空地劫',
+    vernacular: '天空主虛空、落空；做事容易「看得到抓不住」，計劃易散。',
+    ...CITE_WENDA,
+  },
+  {
+    topic: 'star',
+    stars: ['地劫'],
+    classic: '天空地劫',
+    vernacular: '地劫主耗散、破耗；資源或心力容易被抽走，宜防白忙。',
+    ...CITE_WENDA,
+  },
+  {
+    topic: 'star',
+    stars: ['天魁'],
+    classic: '魁鉞斗中司科之星，入命坐貴向貴，或得左右吉聚無不富貴。',
+    vernacular: '天魁是斗中貴人星之一，主貴人提攜、考試文書之助；入命多主有人拉一把。',
+    ...CITE_WENDA,
+  },
+  {
+    topic: 'star',
+    stars: ['天鉞', '天钺'],
+    classic: '魁鉞斗中司科之星，入命坐貴向貴，或得左右吉聚無不富貴。',
+    vernacular: '天鉞與天魁同屬貴人，主和合與扶助；常見「遇難有人成全」的說法。',
+    ...CITE_WENDA,
+  },
+  {
+    topic: 'star',
+    stars: ['天馬', '天马'],
+    classic: '諸宮各有制化，如身命臨之謂之驛馬。',
+    vernacular: '天馬主走動、變動與奔波；身命逢之，古書稱為驛馬，喜見祿存、紫府、昌曲。',
+    ...CITE_WENDA,
+  },
+  {
+    topic: 'star',
+    stars: ['天刑'],
+    classic: '天刑守命身，不為僧道定主孤刑，不夭則貧。',
+    vernacular: '天刑守身命，古書說若非出家清修，就容易孤克刑傷；限步逢之宜防官非破財。',
+    ...CITE_WENDA,
+  },
+  {
+    topic: 'star',
+    stars: ['天姚'],
+    classic: '天姚守身命，心性陰毒，多疑恐、善顏色、風流多婢、主淫。',
+    vernacular: '天姚守身命，主魅力、風流與桃花；也易多疑、因色生非，廟旺則另作富貴看。',
+    ...CITE_WENDA,
+  },
+];
+
+/** 斗數發微論：逐句今譯（classic 對齊站內原文，供古籍「顯示白話」匹配）。 */
+export const FAWEI_LINES: QuoteRecord[] = [
+  {
+    topic: 'fawei-line',
+    classic: '白玉蟾先生曰觀天斗數與五星不同，按此星辰與諸術大異。',
+    vernacular: '白玉蟾說：斗數看天的方式與五星術不同，星辰用法和別家術數差很大。',
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '四正吉星定為貴，三方殺拱少為奇。',
+    vernacular: '四正見到吉星才可論貴；三方被煞星拱照，就很少有出奇的福。',
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '對照兮詳兇詳吉，合照兮觀賤觀榮。',
+    vernacular: '對宮要分清吉凶，三合要看榮辱貴賤。單看一宮不夠。',
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '吉星入垣則為吉，兇星失地則為兇。',
+    vernacular: '吉星落在得地、入廟之處才真吉；凶星落在失陷之地，凶性更顯。',
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '命逢紫微非特壽而且榮，身遇殺星不但貧而且賤。',
+    vernacular: '命宮逢紫微，古書說不僅壽，而且榮；身宮若遇殺星，不但貧而且賤。',
+    stars: ['紫微'],
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '左右會於紫府極品之尊，科權陷於兇鄉功名蹭蹬。',
+    vernacular: '左輔右弼會於紫微、天府，古書以極品之尊比喻；化科、化權若落凶陷之地，功名容易蹭蹬。',
+    stars: ['左輔', '左辅', '右弼', '紫微', '天府'],
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '行限逢乎弱地未必為災，立命會在強宮必能降福。',
+    vernacular: '大限走到弱地不一定成災；命盤本身坐在強宮，仍較能降福。',
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '羊陀七殺限運莫逢，逢之定有刑傷。(劫空傷使在內合斷)',
+    vernacular: '大限、流年忌逢擎羊、陀羅、七殺；逢之古書說易有刑傷（劫空、天傷、天使一併合看）。',
+    stars: ['擎羊', '陀羅', '陀罗', '七殺', '七杀'],
+    needSha: true,
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '天哭喪門流年莫遇，遇之實防破害。',
+    vernacular: '流年忌遇天哭、喪門一類星；遇之宜防破敗、傷損。',
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '南斗主限必生男，北斗加臨先得女。',
+    vernacular: '古書以南斗主限偏男、北斗加臨偏女作子息先後的一種說法，僅供對照。',
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '科星居於陷地，燈火辛勤。昌曲在於兇鄉，林泉冷淡。',
+    vernacular: '化科落陷，文書功名多辛苦；文昌文曲落在凶地，清貴之路容易冷淡。',
+    stars: ['文昌', '文曲'],
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '奸謀頻設，紫微愧遇破軍。淫奔大行，紅鸞差逢貪宿。',
+    vernacular: '紫微遇破軍，古書說易生奸謀波折；紅鸞逢貪狼，桃花事容易過界。',
+    stars: ['紫微', '破軍', '破军', '貪狼', '贪狼'],
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '命身相剋，則心亂而不閒。玄媼三宮，則邪淫而耽酒。(即天姚星)',
+    vernacular: '命與身相剋，內心容易忙亂不安；天姚（玄媼）臨夫妻等宮，古書特提酒色風流之偏。',
+    stars: ['天姚'],
+    palaces: ['qizi'],
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '殺臨三位，定然妻子不和。巨到二宮，必是兄弟無義。',
+    vernacular: '煞星守夫妻宮（第三位），妻子不和；巨門到兄弟宮（第二位），兄弟少義氣。',
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '刑殺守子，宮子難奉老。諸兇照財，帛聚散無常。',
+    vernacular: '刑殺守子女宮，子息難養老；諸凶照財帛，錢財聚散無常。',
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '羊陀守疾厄，眼目昏盲。火鈴到遷移，長途寂寞。',
+    vernacular: '擎羊、陀羅守疾厄，古書特提眼目昏盲；火星、鈴星到遷移，遠行寂寞奔波。',
+    stars: ['擎羊', '陀羅', '陀罗', '火星', '鈴星', '铃星'],
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '尊星列賤位，主人多勞。惡星應八宮，奴僕無助。',
+    vernacular: '貴星落在弱宮，主人多勞碌；惡星應奴僕宮（第八位），部屬或朋友少助力。',
+    palaces: ['jiaoyou'],
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '官祿遇紫府，富而且貴。田宅遇破軍，先破後成。',
+    vernacular: '官祿見紫微、天府，富而且貴；田宅遇破軍，產業先破後成。',
+    stars: ['紫微', '天府', '破軍', '破军'],
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '福德遇空劫，奔走無力。相貌加刑殺，刑剋難免。',
+    vernacular: '福德遇天空、地劫，奔走而力不從心；相貌宮加刑殺，刑克較難免。',
+    stars: ['天空', '地劫'],
+    palaces: ['fude'],
+    ...CITE_FAWEI,
+  },
+  {
+    topic: 'fawei-line',
+    classic: '後學者執此推詳，萬無一失。',
+    vernacular: '後學按這些要點細推，古書自許較少差錯——仍須與全盤合參，不作鐵斷。',
+    ...CITE_FAWEI,
+  },
+];
+
+/** 十二宮諸星失陷破格訣（命宮地支）。 */
+export const SHIXIAN_VERSES: QuoteRecord[] = [
+  {
+    topic: 'shixian-verse',
+    palaces: ['ming'],
+    branches: ['子', '丑'],
+    classic: '子午天機丑巨鈴，此星落陷果為真，縱然化吉更為美，任他富貴不清寧。',
+    vernacular: '命在子、丑：天機在午、巨門鈴星在丑一類落陷，古訣說縱有化吉、富貴也不清寧。',
+    ...CITE_SHIXIAN,
+  },
+  {
+    topic: 'shixian-verse',
+    palaces: ['ming'],
+    branches: ['寅'],
+    classic: '寅上機昌曲月逢，雖然吉拱不豐隆，男為伴僕女娼婢，若非夭折即貧窮。',
+    vernacular: '命在寅：天機、昌曲、太陰相逢，雖有吉拱也不豐隆；古訣語氣極重，宜作「易勞碌貧賤」來看。',
+    ...CITE_SHIXIAN,
+  },
+  {
+    topic: 'shixian-verse',
+    palaces: ['ming'],
+    branches: ['卯', '辰'],
+    classic: '卯上太陰擎羊逢，辰宮巨宿紫微同，縱然化吉非全美，若非加殺到頭兇。',
+    vernacular: '命在卯、辰：卯見太陰擎羊、辰見巨門紫微同宮，古訣說縱化吉也不全美，再加煞更凶。',
+    ...CITE_SHIXIAN,
+  },
+  {
+    topic: 'shixian-verse',
+    palaces: ['ming'],
+    branches: ['巳'],
+    classic: '巳宮武月天梁巨，貪宿廉貞共到蛇，三方吉曜皆不貴，下賤貧窮度歲華。',
+    vernacular: '命在巳：武曲太陰天梁巨門與貪狼廉貞共聚，三方雖有吉曜古訣仍說難貴，偏貧賤勞碌。',
+    ...CITE_SHIXIAN,
+  },
+  {
+    topic: 'shixian-verse',
+    palaces: ['ming'],
+    branches: ['午'],
+    classic: '午宮貪巨月昌從，羊刃三合最嫌衝，雖然化吉居仕路，橫破橫成到老窮。',
+    vernacular: '命在午：貪狼巨門太陰昌曲，又嫌羊刃三合沖；縱化吉走仕途，古訣說橫破橫成、晚年仍窮。',
+    ...CITE_SHIXIAN,
+  },
+  {
+    topic: 'shixian-verse',
+    palaces: ['ming'],
+    branches: ['未'],
+    classic: '未宮巨宿太陽嫌，縱少災危有克傷，勞碌奔波官事至，隨緣下賤度時光。',
+    vernacular: '命在未：巨門與太陽相嫌，縱少大災也有克傷；勞碌奔波、官非易至，宜隨緣安守。',
+    ...CITE_SHIXIAN,
+  },
+  {
+    topic: 'shixian-verse',
+    palaces: ['ming'],
+    branches: ['申', '酉'],
+    classic: '申宮機巨為破格，男人浪蕩女人貧，二宮若然桃花見，男女逢之總不榮。',
+    vernacular: '命在申、酉：天機巨門為破格，男偏浪蕩、女偏貧；再逢桃花，古訣說更難榮顯。',
+    ...CITE_SHIXIAN,
+  },
+  {
+    topic: 'shixian-verse',
+    palaces: ['ming'],
+    branches: ['戌', '戍'],
+    classic: '戍上紫破若相逢，天同太陽皆主兇，若還孤寒更殀折，隨緣勤苦免貧窮。',
+    vernacular: '命在戌：紫微破軍相逢，天同太陽亦主凶；孤寒更重，古訣勸隨緣勤苦以求免貧。',
+    ...CITE_SHIXIAN,
+  },
+  {
+    topic: 'shixian-verse',
+    palaces: ['ming'],
+    branches: ['亥'],
+    classic: '亥宮貪火天梁同，飄蕩浪子走西東，若還富貴也年促，不然隸僕與貧窮。',
+    vernacular: '命在亥：貪狼火星天梁同宮，飄蕩東西；縱有富貴也難長久，否則偏隸僕貧窮。',
+    ...CITE_SHIXIAN,
   },
 ];
 
