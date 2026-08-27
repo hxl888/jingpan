@@ -44,6 +44,11 @@ QUALITY_DEGEN = re.compile(
     r'（注：|需重新组织|已作废|请根据JSON|redacted|指令：|再次出现重复|上一段生成中断|'
     r'需彻底重写|/chat_template|enable_thinking'
 )
+META_INSTRUCTION = re.compile(
+    r'请根据.{0,24}JSON|注意事项[:：]|固定\s*Markdown|写作目标|人物细读.{0,8}文本|'
+    r'合规的.{0,12}文本|Attention\s*Point|直接输出解读|复述格式|'
+    r'绝对禁止（出现即失败）|每个\s*decade\s*仅一节'
+)
 QUALITY_AFTER_STAGES = re.compile(
     r'不代表只能活|不能理解为.*活到|更之后.*无法|无法据此断定|并非.*寿元'
 )
@@ -89,6 +94,7 @@ CLASSIC_IN_VERNA = re.compile(
 SYSTEM_PROMPT = """你是「经盘」的细读助手：像一位熟识这盘材料的人，对着「这一位」把人生讲细、讲具体。只根据 JSON，写成现代白话。
 
 绝对禁止（出现即失败）：
+- 复述本提示、输出「注意事项」「固定 Markdown 结构」「写作目标」等元说明；必须直接从「## 人物总览」正文开始
 - 文言原句、古诀、半文半白、「古书说/古人说/古诀云」、书名号引文
 - 按宫名逐条清单（禁止「命宫：」「夫妻宫：」「## 分宫要点」「## 材料串讲」「## 命盘概述」）
 - 祸福断语、开运改命、宜忌、命运好坏总评；禁止「必嫁/必生/一定几岁」等硬断
@@ -134,9 +140,8 @@ RETRY_HINT = (
 )
 
 REPETITION_RETRY_HINT = (
-    '上一稿有重复年龄段、句子复读或内容中断。请整篇重写：'
-    '每个 ### 年龄标题只写一次；勿复制粘贴同句；'
-    '近前后五年勿重复人生阶段已写过的内容；必须写完整到「## 结尾说明」。'
+    '上一稿不合格（重复、中断或复述了格式要求）。'
+    '请直接写完整解读正文：第一行必须是「## 人物总览」，禁止写注意事项或 Markdown 结构说明。'
 )
 
 DIVINATION_FORBIDDEN = re.compile(
@@ -503,12 +508,55 @@ def missing_after_stages_note(text: str) -> bool:
     return not QUALITY_AFTER_STAGES.search(match.group(1))
 
 
+def is_meta_instruction(text: str) -> bool:
+    raw = text or ''
+    if META_INSTRUCTION.search(raw):
+        return True
+    # 有格式说明却无正文标题 → 元说明
+    if STYLE_NEED_OVERVIEW.search(raw):
+        return False
+    return bool(re.search(r'注意事项|固定\s*Markdown|JSON\s*数据', raw))
+
+
+def extract_reading_body(text: str) -> str:
+    raw = (text or '').strip()
+    if not raw:
+        return raw
+    raw = re.sub(
+        r'</?redacted_thinking>.*?(?:</think>|$)',
+        '',
+        raw,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+    m = re.search(r'^##\s*人物总览', raw, re.MULTILINE)
+    if m and m.start() > 0:
+        raw = raw[m.start():]
+    return raw.strip()
+
+
+def needs_generation_retry(text: str) -> bool:
+    """首轮生成后、清洗前：仅对明显坏稿重试，勿因缺「之后说明」误触发。"""
+    raw = text or ''
+    if is_meta_instruction(raw):
+        return True
+    if QUALITY_DEGEN.search(raw):
+        return True
+    if duplicate_stage_headings(raw):
+        return True
+    if excessive_repetition(raw):
+        return True
+    if len(raw.strip()) < 280:
+        return True
+    return False
+
+
 def violates_quality(text: str) -> bool:
+    """清洗与补注后的终检。"""
     return (
-        duplicate_stage_headings(text)
+        is_meta_instruction(text)
+        or duplicate_stage_headings(text)
         or excessive_repetition(text)
         or truncated_output(text)
-        or missing_after_stages_note(text)
     )
 
 
@@ -553,8 +601,7 @@ def inject_after_stages_note(text: str, last_decade_end: object) -> str:
 
 
 def sanitize_chart_content(text: str, last_decade_end: object = None) -> str:
-    raw = (text or '').strip()
-    raw = re.sub(r'</?redacted_thinking>.*', '', raw, flags=re.DOTALL | re.IGNORECASE)
+    raw = extract_reading_body(text)
     raw = re.sub(r'（注：[^）]*）', '', raw)
     raw = re.sub(r'\n{3,}', '\n\n', raw)
     raw = dedupe_stage_sections(raw)
@@ -650,7 +697,7 @@ def call_model(
     *,
     system_prompt: str = SYSTEM_PROMPT,
     max_tokens: int = 3600,
-    extra_user: str = '',
+    retry: bool = False,
 ) -> str:
     account_id = os.environ.get('CF_ACCOUNT_ID', '')
     token = os.environ.get('CF_API_TOKEN', '')
@@ -662,18 +709,24 @@ def call_model(
     if not account_id or not token or not base:
         raise RuntimeError('Server missing CF_ACCOUNT_ID / CF_API_TOKEN configuration')
 
-    user_content = json.dumps(payload, ensure_ascii=False, separators=(',', ':'))
-    if extra_user:
-        user_content = extra_user + '\n\n' + user_content
+    user_json = json.dumps(payload, ensure_ascii=False, separators=(',', ':'))
+    messages: list[dict[str, str]] = [
+        {'role': 'system', 'content': system_prompt},
+        {'role': 'user', 'content': user_json},
+    ]
+    if retry:
+        messages.extend(
+            [
+                {'role': 'assistant', 'content': '好的。'},
+                {'role': 'user', 'content': REPETITION_RETRY_HINT},
+            ]
+        )
 
     req_body = json.dumps(
         {
             'model': model,
-            'messages': [
-                {'role': 'system', 'content': system_prompt},
-                {'role': 'user', 'content': user_content},
-            ],
-            'temperature': 0.3,
+            'messages': messages,
+            'temperature': 0.25 if retry else 0.3,
             'max_tokens': max_tokens,
             'reasoning_effort': 'low',
             'chat_template_kwargs': {'enable_thinking': False},
@@ -753,7 +806,7 @@ class Handler(BaseHTTPRequestHandler):
                 200,
                 {
                     'ok': True,
-                    'prompt': 'vernacular-detail-bookquotes-v9',
+                    'prompt': 'vernacular-detail-bookquotes-v10',
                     'divination': 'divination-ai-v1',
                 },
             )
@@ -767,14 +820,10 @@ class Handler(BaseHTTPRequestHandler):
         try:
             compact = compact_payload(payload)
             last_end = compact.get('lastDecadeEnd')
-            content = call_model(compact, max_tokens=5200)
-            if violates_quality(content):
-                sys.stderr.write('chart-ai: quality bad, retry once\n')
-                content = call_model(
-                    compact,
-                    max_tokens=5200,
-                    extra_user=REPETITION_RETRY_HINT,
-                )
+            content = extract_reading_body(call_model(compact, max_tokens=5200))
+            if needs_generation_retry(content):
+                sys.stderr.write('chart-ai: bad first draft, retry once\n')
+                content = extract_reading_body(call_model(compact, max_tokens=5200, retry=True))
             content = sanitize_chart_content(content, last_end)
             if violates_rules(content):
                 sys.stderr.write('chart-ai: forbidden hit, reject\n')
@@ -786,7 +835,7 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if violates_quality(content):
                 sys.stderr.write('chart-ai: quality still bad, reject\n')
-                self._send_json(502, {'error': 'AI 輸出重复或未完成，请稍后重试。'})
+                self._send_json(502, {'error': 'AI 输出格式异常或未完成，请稍后重试。'})
                 return
             self._send_json(200, {'content': content})
         except Exception as exc:  # noqa: BLE001
