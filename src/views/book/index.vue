@@ -64,34 +64,35 @@
       </nav>
       <div
         ref="scrollerRef"
-        class="reader rounded-lg border p-5"
+        class="reader-scroll"
         data-scroll-root
-        :style="cardStyle"
         @scroll="handleScroll"
       >
-        <section
-          v-for="chapter in filteredChapters"
-          :id="chapter.id"
-          :key="chapter.id"
-          class="chapter"
-          :data-chapter-id="chapter.id"
-        >
-          <h2 class="mb-4 text-2xl font-semibold" style="color: var(--zw-primary)">
-            {{ display(chapter.title, false) }}
-          </h2>
-          <ClassicText
-            v-if="isChapterMounted(chapter.id)"
-            :blocks="chapter.blocks"
-            :chapter-id="chapter.id"
-            :show-vernacular="showVernacular"
-          />
-          <div
-            v-else
-            class="chapter-placeholder"
-            :style="{ minHeight: `${placeholderHeight(chapter)}px` }"
-            aria-hidden="true"
-          />
-        </section>
+        <div class="reader rounded-lg border p-3 md:p-5" :style="cardStyle">
+          <section
+            v-for="chapter in renderedChapters"
+            :id="chapter.id"
+            :key="chapter.id"
+            class="chapter"
+            :data-chapter-id="chapter.id"
+          >
+            <h2 class="mb-4 text-2xl font-semibold" style="color: var(--zw-primary)">
+              {{ display(chapter.title, false) }}
+            </h2>
+            <ClassicText
+              v-if="isChapterMounted(chapter.id)"
+              :blocks="chapter.blocks"
+              :chapter-id="chapter.id"
+              :show-vernacular="showVernacular"
+            />
+            <div
+              v-else
+              class="chapter-placeholder"
+              :style="{ minHeight: `${PLACEHOLDER_HEIGHT}px` }"
+              aria-hidden="true"
+            />
+          </section>
+        </div>
       </div>
     </div>
 
@@ -133,13 +134,13 @@ const LAZY_ROOT_MARGIN = '800px 0px';
 /** 命中一章时额外挂载前后邻居数 */
 const LAZY_NEIGHBOR = 1;
 
+/** 阅读区 DOM 中保留的章节缓冲（含未挂载标题） */
+const RENDER_NEIGHBOR = 2;
+/** 占位条固定高度，勿按 blocks 估算（否则会撑出大片空白） */
+const PLACEHOLDER_HEIGHT = 40;
+
 function volumeLabel(v: BookVolume): string {
   return v === 1 ? '卷一' : v === 2 ? '卷二' : '卷三';
-}
-
-function placeholderHeight(chapter: BookChapter): number {
-  const n = chapter.blocks?.length ?? 1;
-  return Math.min(1800, Math.max(140, n * 42));
 }
 
 export default defineComponent({
@@ -195,6 +196,24 @@ export default defineComponent({
     );
 
     const isChapterMounted = (id: string) => mountedChapterIds.value.has(id);
+
+    const renderedChapters = computed(() => {
+      const list = filteredChapters.value;
+      const mounted = mountedChapterIds.value;
+      if (!mounted.size) return list.slice(0, INITIAL_MOUNT_COUNT);
+
+      const indices = new Set<number>();
+      list.forEach((ch, i) => {
+        if (mounted.has(ch.id)) indices.add(i);
+      });
+      for (const i of [...indices]) {
+        for (let d = -RENDER_NEIGHBOR; d <= RENDER_NEIGHBOR; d += 1) {
+          const j = i + d;
+          if (j >= 0 && j < list.length) indices.add(j);
+        }
+      }
+      return [...indices].sort((a, b) => a - b).map((i) => list[i]);
+    });
 
     const ensureChaptersMounted = (...ids: string[]) => {
       let changed = false;
@@ -265,18 +284,29 @@ export default defineComponent({
           threshold: 0,
         },
       );
-      for (const chapter of filteredChapters.value) {
+      for (const chapter of renderedChapters.value) {
         const el = document.getElementById(chapter.id);
         if (el) chapterObserver.observe(el);
       }
     };
 
-    watch(showVernacular, (on) => {
-      sessionStorage.setItem(VERNACULAR_PREF_KEY, on ? '1' : '0');
+    watch(renderedChapters, () => {
+      void observeChapters();
     });
 
-    watch(filteredChapters, () => {
-      void observeChapters();
+    const mountNextChapter = () => {
+      const list = filteredChapters.value;
+      let maxIdx = -1;
+      for (let i = 0; i < list.length; i += 1) {
+        if (mountedChapterIds.value.has(list[i].id)) maxIdx = i;
+      }
+      if (maxIdx >= 0 && maxIdx < list.length - 1) {
+        ensureChaptersMounted(list[maxIdx + 1].id);
+      }
+    };
+
+    watch(showVernacular, (on) => {
+      sessionStorage.setItem(VERNACULAR_PREF_KEY, on ? '1' : '0');
     });
 
     // 首屏同步挂载，避免先闪占位再补正文
@@ -312,6 +342,9 @@ export default defineComponent({
         if (el.getBoundingClientRect().top - 120 <= 0) current = item.id;
       }
       activeId.value = current;
+
+      const nearBottom = root.scrollHeight - root.scrollTop - root.clientHeight < 420;
+      if (nearBottom) mountNextChapter();
     };
 
     const fromNaming = computed(
@@ -483,6 +516,7 @@ export default defineComponent({
       filteredToc,
       tocOptions,
       filteredChapters,
+      renderedChapters,
       activeId,
       scrollerRef,
       display,
@@ -494,7 +528,6 @@ export default defineComponent({
       showVernacular,
       volumeHasVernacular,
       isChapterMounted,
-      placeholderHeight,
       showFloatBack,
       floatBackLabel,
       floatStyle,
@@ -518,7 +551,7 @@ export default defineComponent({
   overflow: hidden;
   box-sizing: border-box;
   padding-top: 12px;
-  padding-bottom: 16px;
+  padding-bottom: 8px;
 }
 .book-chrome {
   flex: none;
@@ -617,24 +650,30 @@ export default defineComponent({
   color: var(--zw-primary);
   font-weight: 600;
 }
-.reader {
+.reader-scroll {
   min-height: 0;
   height: 100%;
-  max-height: none;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
+.reader {
+  /* 卡片随正文高度，不再撑满视口留白 */
+  min-height: 0;
+}
 .chapter {
   scroll-margin-top: 12px;
-  margin-bottom: 48px;
+  margin-bottom: 24px;
+}
+.chapter:last-child {
+  margin-bottom: 0;
 }
 .chapter-placeholder {
   border-radius: 6px;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--zw-line) 35%, transparent),
-    transparent 72%
+    color-mix(in srgb, var(--zw-line) 22%, transparent),
+    transparent 100%
   );
 }
 .float-back {
@@ -695,12 +734,17 @@ export default defineComponent({
     0 8px 22px rgba(44, 36, 22, 0.14);
 }
 @media (max-width: 768px) {
-  .book-page {
-    /* 给底部「盘」悬浮钮留空，避免挡最后几行 */
-    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  .book-page.page-container {
+    padding: 6px 10px 8px;
   }
   .book-layout {
     grid-template-columns: 1fr;
+  }
+  .reader {
+    padding: 10px 12px;
+  }
+  .chapter {
+    margin-bottom: 20px;
   }
   .volume-tabs {
     width: 100%;

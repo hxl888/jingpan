@@ -35,6 +35,27 @@ STYLE_NEED_CAREER = re.compile(r'##\s*工作事业|##\s*工作事業')
 STYLE_NEED_HEALTH = re.compile(r'##\s*健康与家人|##\s*健康與家人')
 STYLE_NEED_WEALTH = re.compile(r'##\s*财运与资源|##\s*財運與資源')
 STYLE_NEED_NEAR = re.compile(r'##\s*近前后五年|##\s*近前後五年')
+STYLE_NEED_ENDING = re.compile(r'##\s*结尾说明|##\s*結尾說明')
+
+STAGE_HEADING = re.compile(r'^###\s*(\d+-\d+)岁\s*$', re.MULTILINE)
+STAGES_SECTION = re.compile(r'(##\s*人生阶段.*?)(##\s*婚姻感情)', re.DOTALL)
+
+QUALITY_DEGEN = re.compile(
+    r'（注：|需重新组织|已作废|请根据JSON|redacted|指令：|再次出现重复|上一段生成中断|'
+    r'需彻底重写|/chat_template|enable_thinking'
+)
+QUALITY_AFTER_STAGES = re.compile(
+    r'不代表只能活|不能理解为.*活到|更之后.*无法|无法据此断定|并非.*寿元'
+)
+
+# 模型复读高频句
+REPEAT_PHRASE_LIMITS: tuple[tuple[str, int], ...] = (
+    ('这十年里', 5),
+    ('这五年里', 4),
+    ('可能会遇到一个让他觉得比较「稳」的人', 2),
+    ('或者开始尝试建立自己的小家庭', 2),
+    ('他可能会遇到一个', 4),
+)
 
 # 大限宫名 → 生活主题（避免模型按宫罗列）
 THEME_MAP = {
@@ -79,7 +100,7 @@ SYSTEM_PROMPT = """你是「经盘」的细读助手：像一位熟识这盘材�
 2. 抓住本盘独特组合：meta（性别、五行局、命主/身主）、sanFangMing、topics 里各主题星曜的 brightness（庙旺陷等）与 mutagen（禄权科忌）、patternNames、notes。不同星组→不同相处方式、压力点、转机，禁止写成通用性格模板。
 3. 少堆星名：星名最多点一两次当线索，重点写「落到生活里会怎样」——容易怎么选择、怎么卡住、跟谁容易起摩擦、哪类事会反复出现。像细说一个人，不像写说明书。
 4. 性格与处世：结合四面星曜写具体习惯与反差（对外怎样、对内怎样、压力下怎样），避免空泛「追求荣誉/辅助他人」式标签。
-5. 人生阶段：按 decades 逐段，标题只用年龄（### 6-15岁）；用 lifeTheme，不写宫名标题。每段写出该十年「具体在忙什么、容易踩什么坑、跟上一阶段怎么不同」；星曜有 brightness/mutagen 时要用来区分力度（如庙旺更显、陷地更吃力、化忌更纠结）。写完最后一个 decade 后另起一小段（无 ###）：材料写到约 lastDecadeEnd 岁为止，之后长短与境遇无法据此断定，切勿理解成「只能活到该年龄」。
+5. 人生阶段：严格按 JSON decades，每个年龄段只用「### {range}岁」标题写一次，禁止重复同一年龄段、禁止写两遍。每段 3～5 句，用 lifeTheme 作主题，不写宫名标题；禁止段内反复用「这十年里」「这五年里」凑字数。星曜有 brightness/mutagen 时用来区分力度。全部 decade 写完后，必须紧接着写一段「之后说明」（不要用 ###）：明确写「以上仅据本盘大限材料写至约 lastDecadeEnd 岁；更之后的年龄与境遇无法据此断定，不代表只能活到这个年纪」——lastDecadeEnd 取自 JSON。
 6. 四个专题写细（生活主题，禁止宫名清单）：
    - 婚姻感情：相处模式、吸引/冲突点、婚后容易卡在哪；并做软语气倾向推估（较容易／约／前后／偏向）——成家年龄区间、生育年龄区间、子女数量与男女倾向（看 topics.marriage / topics.children / decades 中亲密关系主题段与 notes）。不足则明说不易推到。
    - 工作事业：适合什么节奏与场景、升迁/变动压力、与人协作的具体卡点（topics.career）。
@@ -87,14 +108,14 @@ SYSTEM_PROMPT = """你是「经盘」的细读助手：像一位熟识这盘材�
    - 财运与资源：钱怎么来、怎么散、守财习惯与家庭资产压力（topics.wealth）；不作投资建议。
 7. 近前后五年：依 nearTerm 分「过去五年左右 / 眼下 / 未来五年左右」；结合 age、lifeTheme、stars，写这几年婚姻/工作/健康家人/财运里「具体会碰到什么」，勿空泛复读大限主题。
 8. notes、bookQuotes（卷一全量今译摘句，优先于旧摘句库）、patterns 消化进叙事，不要提出处、不要照抄格局原文；优先依据 bookQuotes 与 notes 写细。
-9. 篇幅：不设字数上限。写够细节即可；宁可一段写透，也不要空洞短句凑结构。仍保持可读，不要无意义重复。
+9. 篇幅与完整性：一次写完整，禁止中断、自我纠错、括号注释「（注：…）」、禁止重复粘贴同一段。近前后五年只写三节（过去/眼下/未来），勿与人生阶段重复同年龄叙事。
 
 固定 Markdown 结构（标题一字不差）：
 ## 人物总览
 ## 性格与处世
 ## 人生阶段
 ### {range}岁
-（每个 decade 一节；全部写完后紧接「之后说明」小段）
+（每个 decade 仅一节；最后一节后接「之后说明」小段，再进入下一章）
 ## 婚姻感情
 ## 工作事业
 ## 健康与家人
@@ -107,7 +128,15 @@ RETRY_HINT = (
     '上一稿不合格。请重写：全文现代白话；禁止古书/古人/古诀/引文与公文套话；'
     '禁止分宫清单与只罗列星名；必须含「## 人物总览」「## 人生阶段」与四个专题；'
     '每盘写细、写具体生活场景，突出本盘星曜组合的独特性；'
-    '人生阶段末须说明之后岁月不确定；婚姻须含软语气成家／生育／子女倾向推估。'
+    '人生阶段每个年龄段标题只出现一次，禁止重复；'
+    '最后一档大限后必须写「之后说明」：更之后不确定、不代表只能活到该年龄；'
+    '禁止「这十年里」反复堆砌；婚姻须含软语气成家／生育／子女倾向推估。'
+)
+
+REPETITION_RETRY_HINT = (
+    '上一稿有重复年龄段、句子复读或内容中断。请整篇重写：'
+    '每个 ### 年龄标题只写一次；勿复制粘贴同句；'
+    '近前后五年勿重复人生阶段已写过的内容；必须写完整到「## 结尾说明」。'
 )
 
 DIVINATION_FORBIDDEN = re.compile(
@@ -430,7 +459,107 @@ def violates_style(text: str) -> bool:
         return True
     if not STYLE_NEED_NEAR.search(raw):
         return True
+    if not STYLE_NEED_ENDING.search(raw):
+        return True
     return False
+
+
+def duplicate_stage_headings(text: str) -> bool:
+    seen: dict[str, int] = {}
+    for match in STAGE_HEADING.finditer(text or ''):
+        key = match.group(1)
+        seen[key] = seen.get(key, 0) + 1
+        if seen[key] > 1:
+            return True
+    return False
+
+
+def excessive_repetition(text: str) -> bool:
+    body = text or ''
+    for phrase, limit in REPEAT_PHRASE_LIMITS:
+        if body.count(phrase) > limit:
+            return True
+    return False
+
+
+def truncated_output(text: str) -> bool:
+    raw = (text or '').strip()
+    if len(raw) < 400:
+        return True
+    if QUALITY_DEGEN.search(raw):
+        return True
+    if not STYLE_NEED_ENDING.search(raw):
+        return True
+    tail = raw[-120:]
+    if re.search(r'[，,、：:「『$]', tail):
+        return True
+    return False
+
+
+def missing_after_stages_note(text: str) -> bool:
+    match = STAGES_SECTION.search(text or '')
+    if not match:
+        return True
+    return not QUALITY_AFTER_STAGES.search(match.group(1))
+
+
+def violates_quality(text: str) -> bool:
+    return (
+        duplicate_stage_headings(text)
+        or excessive_repetition(text)
+        or truncated_output(text)
+        or missing_after_stages_note(text)
+    )
+
+
+def dedupe_stage_sections(text: str) -> str:
+    match = STAGES_SECTION.search(text or '')
+    if not match:
+        return text
+    prefix = text[: match.start()]
+    stages_block = match.group(1)
+    suffix = text[match.start(2) :]
+
+    chunks = re.split(r'(?=^###\s*\d+-\d+岁\s*$)', stages_block, flags=re.MULTILINE)
+    seen: set[str] = set()
+    kept: list[str] = []
+    for chunk in chunks:
+        if not chunk.strip():
+            continue
+        heading = STAGE_HEADING.search(chunk)
+        if heading:
+            key = heading.group(1)
+            if key in seen:
+                continue
+            seen.add(key)
+        kept.append(chunk.rstrip())
+    return prefix + '\n\n'.join(kept) + '\n\n' + suffix.lstrip('\n')
+
+
+def inject_after_stages_note(text: str, last_decade_end: object) -> str:
+    if not missing_after_stages_note(text):
+        return text
+    end_label = str(last_decade_end) if last_decade_end not in (None, '') else '…'
+    note = (
+        f'以上各段仅据本盘大限材料写至约{end_label}岁；'
+        '更之后的年龄与境遇无法据此断定，**不代表只能活到这个年纪**。'
+    )
+    return re.sub(
+        r'(\n##\s*婚姻感情)',
+        f'\n\n{note}\n\\1',
+        text,
+        count=1,
+    )
+
+
+def sanitize_chart_content(text: str, last_decade_end: object = None) -> str:
+    raw = (text or '').strip()
+    raw = re.sub(r'</?redacted_thinking>.*', '', raw, flags=re.DOTALL | re.IGNORECASE)
+    raw = re.sub(r'（注：[^）]*）', '', raw)
+    raw = re.sub(r'\n{3,}', '\n\n', raw)
+    raw = dedupe_stage_sections(raw)
+    raw = inject_after_stages_note(raw, last_decade_end)
+    return raw.strip()
 
 
 def compact_divination_payload(body: dict) -> dict:
@@ -624,7 +753,7 @@ class Handler(BaseHTTPRequestHandler):
                 200,
                 {
                     'ok': True,
-                    'prompt': 'vernacular-detail-bookquotes-v8',
+                    'prompt': 'vernacular-detail-bookquotes-v9',
                     'divination': 'divination-ai-v1',
                 },
             )
@@ -637,14 +766,27 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             compact = compact_payload(payload)
+            last_end = compact.get('lastDecadeEnd')
             content = call_model(compact, max_tokens=5200)
+            if violates_quality(content):
+                sys.stderr.write('chart-ai: quality bad, retry once\n')
+                content = call_model(
+                    compact,
+                    max_tokens=5200,
+                    extra_user=REPETITION_RETRY_HINT,
+                )
+            content = sanitize_chart_content(content, last_end)
             if violates_rules(content):
                 sys.stderr.write('chart-ai: forbidden hit, reject\n')
                 self._send_json(502, {'error': 'AI 輸出含不宜表述，已拒絕返回，請稍後重試。'})
                 return
             if violates_style(content):
-                sys.stderr.write('chart-ai: style bad, reject (no retry)\n')
+                sys.stderr.write('chart-ai: style bad, reject\n')
                 self._send_json(502, {'error': 'AI 輸出格式不符（需白話總覽、四專題與年齡段），請稍後重試。'})
+                return
+            if violates_quality(content):
+                sys.stderr.write('chart-ai: quality still bad, reject\n')
+                self._send_json(502, {'error': 'AI 輸出重复或未完成，请稍后重试。'})
                 return
             self._send_json(200, {'content': content})
         except Exception as exc:  # noqa: BLE001
