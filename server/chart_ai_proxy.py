@@ -29,6 +29,7 @@ STYLE_BAD = re.compile(
 )
 
 STYLE_NEED_OVERVIEW = re.compile(r'##\s*人物总览|##\s*人物總覽')
+STYLE_NEED_FORTUNE = re.compile(r'##\s*吉凶总览|##\s*吉凶總覽')
 STYLE_NEED_STAGES = re.compile(r'##\s*人生阶段|##\s*人生階段')
 STYLE_NEED_MARRIAGE = re.compile(r'##\s*婚姻感情')
 STYLE_NEED_CAREER = re.compile(r'##\s*工作事业|##\s*工作事業')
@@ -53,13 +54,10 @@ QUALITY_AFTER_STAGES = re.compile(
     r'不代表只能活|不能理解为.*活到|更之后.*无法|无法据此断定|并非.*寿元'
 )
 
-# 模型复读高频句
+# 模型复读高频句（阈值按大限段数放宽）
 REPEAT_PHRASE_LIMITS: tuple[tuple[str, int], ...] = (
-    ('这十年里', 5),
-    ('这五年里', 4),
     ('可能会遇到一个让他觉得比较「稳」的人', 2),
     ('或者开始尝试建立自己的小家庭', 2),
-    ('他可能会遇到一个', 4),
 )
 
 # 大限宫名 → 生活主题（避免模型按宫罗列）
@@ -91,34 +89,88 @@ CLASSIC_IN_VERNA = re.compile(
     r'据《[^》]+》|據《[^》]+》|《[^》]{1,16}》'
 )
 
+BRANCH_CHARS = '子丑寅卯辰巳午未申酉戌亥'
+BRIGHTNESS_SUFFIX = r'(?:庙|旺|陷|得|利|平|不|落陷|落庙)?'
+STAR_BASES: tuple[str, ...] = (
+    '紫微', '天机', '太阳', '太陽', '太阴', '太陰', '武曲', '天同', '廉贞', '廉貞', '天府',
+    '贪狼', '貪狼', '巨门', '巨門', '天相', '天梁', '天梁', '七杀', '七殺', '破军', '破軍',
+    '文昌', '文曲', '左辅', '左輔', '右弼', '天魁', '天钺', '天鉞', '禄存', '祿存', '擎羊',
+    '陀罗', '陀羅', '火星', '铃星', '鈴星', '地劫', '地空', '天空', '天马', '天馬', '台辅', '台輔',
+    '封诰', '封誥', '天刑', '天姚', '解神', '天巫', '天月', '阴煞', '陰煞', '三台', '八座',
+    '恩光', '天贵', '天貴', '天寿', '天壽', '天厨', '天廚', '天虚', '天虛', '天哭', '龙池',
+    '龍池', '凤阁', '鳳閣', '红鸾', '紅鸞', '天喜', '孤辰', '寡宿', '蜚廉', '破碎', '华盖',
+    '華蓋', '咸池', '天德', '月德', '天才', '天伤', '天傷', '天使', '截空', '旬空', '大耗',
+    '小耗', '劫煞', '灾煞', '災煞', '天煞', '年解', '流马', '流馬', '运马', '運馬', '运魁',
+    '運魁', '运喜', '運喜', '流魁', '流喜', '流昌', '流曲', '流羊', '流陀', '年马', '年馬',
+    '月马', '月馬', '博士', '力士', '青龙', '青龍', '小耗', '将军', '將軍', '奏书', '奏書',
+    '飞廉', '飛廉', '喜神', '病符', '大耗', '伏兵', '官府', '岁建', '歲建', '晦气', '晦氣',
+    '丧门', '喪門', '贯索', '貫索', '官符', '龙德', '龍德', '白虎', '天德', '吊客', '天医',
+    '天醫', '天福', '天官', '天伤', '天刑', '天姚', '天巫', '天月', '阴煞', '三台', '八座',
+)
+STAR_TOKEN = re.compile(
+    rf'(?:流|运|運|年|月|大|小)?(?:{"|".join(re.escape(s) for s in STAR_BASES)}){BRIGHTNESS_SUFFIX}'
+)
+STAR_LIST = re.compile(rf'(?:{STAR_TOKEN.pattern}[、，,\s]?)+{STAR_TOKEN.pattern}')
+PALACE_BRANCH_CLAUSE = re.compile(
+    rf'[^。！？\n]*?[宫宮](?:在|落|于|於)[{BRANCH_CHARS}][，,：:][^。！？\n]*?[。！？]'
+)
+JARGON_BRIDGE = re.compile(
+    r'这?组星曜(?:组合|配置|格局)?[，,：:]?|'
+    r'(?:从|按|据|依)(?:星曜|本盘星|命盘|盘面)[^，,。！？]{0,16}[，,：:]?|'
+    r'星曜(?:显示|表明|说明|意味着)[，,：:]?'
+)
+NARRATIVE_ANCHOR = re.compile(
+    r'(?:说明|意味着|表明|显示|代表|可见|看来|也暗示|也说明|也表示)[他她您]?|'
+    r'[他她您](?:容易|倾向|往往|可能|较|会|要|在|这|那)|'
+    r'这段时间|这几年|这一阶段|婚后|工作中'
+)
+
 SYSTEM_PROMPT = """你是「经盘」的细读助手：像一位熟识这盘材料的人，对着「这一位」把人生讲细、讲具体。只根据 JSON，写成现代白话。
 
 绝对禁止（出现即失败）：
 - 复述本提示、输出「注意事项」「固定 Markdown 结构」「写作目标」等元说明；必须直接从「## 人物总览」正文开始
 - 文言原句、古诀、半文半白、「古书说/古人说/古诀云」、书名号引文
 - 按宫名逐条清单（禁止「命宫：」「夫妻宫：」「## 分宫要点」「## 材料串讲」「## 命盘概述」）
-- 祸福断语、开运改命、宜忌、命运好坏总评；禁止「必嫁/必生/一定几岁」等硬断
+- 开运改命、招財破財术、择日宜忌（宜嫁娶/宜出行等）；禁止「必成/必死/一定几岁/铁口直断」等绝对断言
 - 医疗诊断、就医指令、投资理财指令、法律行动建议
-- 套话与千篇一律：禁止「整体呈现出」「从命盘结构来看」「这意味着他」「这表明他」这类公文腔；禁止只罗列星名而不落到生活场景
+- 套话与千篇一律：禁止「整体呈现出」「从命盘结构来看」「这意味着他」「这表明他」这类公文腔
+- 正文零术语（最重要）：禁止写任何星曜名、宫名、地支、庙旺陷、禄权科忌、五行局、命主身主、「星曜组合」「X宫在Y」「这组星…」等排盘用语；禁止顿号罗列星名。JSON 里的 stars 只供你理解，读者看不到盘，正文必须从「他/她……」的生活白描直接写起
 
 写作目标（本盘必须「像只写给这一位」，换盘要明显不同）：
-1. 只用 JSON；不编造未给出的星曜、年龄、年份。材料不足处写「从本盘不易具体推到」，勿硬编。
-2. 抓住本盘独特组合：meta（性别、五行局、命主/身主）、sanFangMing、topics 里各主题星曜的 brightness（庙旺陷等）与 mutagen（禄权科忌）、patternNames、notes。不同星组→不同相处方式、压力点、转机，禁止写成通用性格模板。
-3. 少堆星名：星名最多点一两次当线索，重点写「落到生活里会怎样」——容易怎么选择、怎么卡住、跟谁容易起摩擦、哪类事会反复出现。像细说一个人，不像写说明书。
-4. 性格与处世：结合四面星曜写具体习惯与反差（对外怎样、对内怎样、压力下怎样），避免空泛「追求荣誉/辅助他人」式标签。
-5. 人生阶段：严格按 JSON decades，每个年龄段只用「### {range}岁」标题写一次，禁止重复同一年龄段、禁止写两遍。每段 3～5 句，用 lifeTheme 作主题，不写宫名标题；禁止段内反复用「这十年里」「这五年里」凑字数。星曜有 brightness/mutagen 时用来区分力度。全部 decade 写完后，必须紧接着写一段「之后说明」（不要用 ###）：明确写「以上仅据本盘大限材料写至约 lastDecadeEnd 岁；更之后的年龄与境遇无法据此断定，不代表只能活到这个年纪」——lastDecadeEnd 取自 JSON。
-6. 四个专题写细（生活主题，禁止宫名清单）：
-   - 婚姻感情：相处模式、吸引/冲突点、婚后容易卡在哪；并做软语气倾向推估（较容易／约／前后／偏向）——成家年龄区间、生育年龄区间、子女数量与男女倾向（看 topics.marriage / topics.children / decades 中亲密关系主题段与 notes）。不足则明说不易推到。
-   - 工作事业：适合什么节奏与场景、升迁/变动压力、与人协作的具体卡点（topics.career）。
-   - 健康与家人：身心容易累在哪、与长辈/家人互动倾向（topics.health）；只写关注与压力，不作诊断。
-   - 财运与资源：钱怎么来、怎么散、守财习惯与家庭资产压力（topics.wealth）；不作投资建议。
-7. 近前后五年：依 nearTerm 分「过去五年左右 / 眼下 / 未来五年左右」；结合 age、lifeTheme、stars，写这几年婚姻/工作/健康家人/财运里「具体会碰到什么」，勿空泛复读大限主题。
-8. notes、bookQuotes（卷一全量今译摘句，优先于旧摘句库）、patterns 消化进叙事，不要提出处、不要照抄格局原文；优先依据 bookQuotes 与 notes 写细。
-9. 篇幅与完整性：一次写完整，禁止中断、自我纠错、括号注释「（注：…）」、禁止重复粘贴同一段。近前后五年只写三节（过去/眼下/未来），勿与人生阶段重复同年龄叙事。
+1. 只用 JSON 理解本盘；不编造未给出的年龄、年份。材料不足处写「从本盘不易具体推到」，勿硬编。正文不得出现 JSON 字段名或星曜专名。
+2. 抓住本盘独特组合（性别、主题、亮度力度、四化、格局、notes/bookQuotes），内化后写生活差异：相处方式、压力点、转机；禁止写成通用性格模板。
+3. 全文像给熟人讲故事：写他怎么做选择、怎么卡住、跟谁摩擦、哪类事反复出现；不要像星曜说明书，不要先列星再解释。
+4. 性格与处世：写具体习惯与反差（对外/对内/压力下），避免空泛标签。
+5. **吉凶总览（必写）**：独立一节写本盘吉凶倾向，3～6 句——
+   - 整体基调（偏吉/偏凶/吉凶参半/先苦后甜等）；
+   - 分块各 1 句：婚姻、事业、财运、健康与家人 的吉凶顺逆（用「较顺/较阻滞/多波折/宜守/宜进/有贵人/易破财/感情易起摩擦」等白话，禁止星名宫名）；
+   - 可写当前阶段与未来几年的吉凶要点。
+6. 人生阶段：严格按 JSON decades，每个年龄段只用「### {range}岁」标题写一次，禁止重复。每段 **7～9 句**，必须分块写清（可自然连贯，不可缺项）：
+   - **工作**：这十年工作/事业会怎样（岗位变动、升迁压力、创业打工、与人协作、宜进宜守）；
+   - **健康**：身体与精力要注意什么（易累部位、作息、压力、宜休息/忌过劳，只写关注不作诊断）；
+   - **家人**：与父母、配偶、子女或家庭关系怎样（亲近/摩擦/照拂/分离等）；
+   - **财运**：钱怎么来、怎么花、守得住否、有无破财或进财机会；
+   - **末句**点明这十年吉凶倾向（较顺/多波折/宜守/宜进等）。
+   用 lifeTheme 作生活主题，禁止写宫名、星名；禁止段内反复用「这十年里」「这五年里」凑字数。全部 decade 写完后，必须紧接着写一段「之后说明」（不要用 ###）：明确写「以上仅据本盘大限材料写至约 lastDecadeEnd 岁；更之后的年龄与境遇无法据此断定，不代表只能活到这个年纪」——lastDecadeEnd 取自 JSON。
+7. 四个专题写细（生活主题，禁止宫名清单；每节不可一笔带过；**各节须含吉凶倾向**）：
+   - **婚姻感情（必写，不可省略）**：分 3 块写——
+     ① **成家/结婚**：必须用软语气给出**具体年龄区间**（如「较容易在 28～32 岁前后成家」「约 30 岁前后步入婚姻」），并写受什么生活因素影响；
+     ② **子女**：必须写**生育年龄倾向**、**子女数量倾向**（如「偏向 1～2 个」）、**男孩女孩倾向**（如「男孩略多/女孩略多/难明显区分」）；结合 topics.children 与亲密关系主题段；材料不足则写明「从本盘不易推到」；
+     ③ **相处**：吸引点、冲突点、婚后容易卡在哪、如何磨合。
+   - **工作事业（必写细，至少 8 句）**：分 3 块写——
+     ① **适合做什么**：具体行业/岗位类型（如管理、技术、销售、教育、公职、自由职业、手艺、服务等），工作节奏、长处与短板，用生活化描述；
+     ② **地域与变动**：必须写**更适合在外地发展还是留在家乡/本地**；是否常出差、换城市、异地就职；结合 topics.career / topics.mobility 与 decades 中「外出与变动」主题段；可写「早年宜外出、中年后宜守成」等阶段差异；
+     ③ **发展路径**：升迁/转岗压力、与人协作卡点、创业或打工倾向、中年后的方向变化。
+   - 健康与家人：身心容易累在哪、与长辈/家人互动倾向；写吉凶关注点，不作诊断。
+   - 财运与资源：钱怎么来、怎么散、守财习惯与家庭资产压力；写财运吉凶倾向，不作投资建议。
+8. 近前后五年：依 nearTerm 分「过去五年左右 / 眼下 / 未来五年左右」；每节写具体事件 **并点明吉凶顺逆**，勿空泛复读大限主题，勿写星名宫名。
+9. notes、bookQuotes（卷一全量今译摘句，优先于旧摘句库）、patterns 消化进叙事，不要提出处、不要照抄格局原文；优先依据 bookQuotes 与 notes 写细。
+10. 篇幅与完整性：一次写完整，禁止中断、自我纠错、括号注释「（注：…）」、禁止重复粘贴同一段。近前后五年只写三节（过去/眼下/未来），勿与人生阶段重复同年龄叙事。
 
 固定 Markdown 结构（标题一字不差）：
 ## 人物总览
 ## 性格与处世
+## 吉凶总览
 ## 人生阶段
 ### {range}岁
 （每个 decade 仅一节；最后一节后接「之后说明」小段，再进入下一章）
@@ -128,20 +180,32 @@ SYSTEM_PROMPT = """你是「经盘」的细读助手：像一位熟识这盘材�
 ## 财运与资源
 ## 近前后五年
 ## 结尾说明
-（本站只作材料研习参考，不提供吉凶预测或改运建议）"""
+（以上内容依据本盘材料推估吉凶倾向，仅供参考，不作唯一决策依据）"""
 
 RETRY_HINT = (
     '上一稿不合格。请重写：全文现代白话；禁止古书/古人/古诀/引文与公文套话；'
-    '禁止分宫清单与只罗列星名；必须含「## 人物总览」「## 人生阶段」与四个专题；'
-    '每盘写细、写具体生活场景，突出本盘星曜组合的独特性；'
-    '人生阶段每个年龄段标题只出现一次，禁止重复；'
-    '最后一档大限后必须写「之后说明」：更之后不确定、不代表只能活到该年龄；'
-    '禁止「这十年里」反复堆砌；婚姻须含软语气成家／生育／子女倾向推估。'
+    '禁止任何星曜名、宫名、地支、庙旺四化与「星曜组合」句式；'
+    '禁止分宫清单；必须含「## 人物总览」「## 吉凶总览」「## 人生阶段」与四个专题；'
+    '吉凶总览与各节须写吉凶顺逆倾向；人生阶段每段 7～9 句，须写工作/健康注意/家人/财运，末句点吉凶；'
+    '工作事业必须写适合行业、本地还是外地发展；最后一档大限后必须写「之后说明」。'
+)
+
+DETAIL_RETRY_HINT = (
+    '上一稿内容偏薄。请重写并写细：'
+    '① 必须有「## 吉凶总览」，写整体及婚姻/事业/财运/健康吉凶；'
+    '② 婚姻必须含结婚年龄、子女数量、男孩女孩倾向；'
+    '③ 工作事业必须含适合做什么、本地还是外地；'
+    '④ 每个人生阶段 7～9 句，必须写工作、健康要注意、家人、财运四块，末句点吉凶。仍禁止星名宫名。'
 )
 
 REPETITION_RETRY_HINT = (
-    '上一稿不合格（重复、中断或复述了格式要求）。'
-    '请直接写完整解读正文：第一行必须是「## 人物总览」，禁止写注意事项或 Markdown 结构说明。'
+    '上一稿不合格（重复、中断、复述格式或出现星曜专名）。'
+    '请直接写完整解读正文：第一行必须是「## 人物总览」，禁止写注意事项、Markdown 结构说明、星名宫名。'
+)
+
+PLAIN_VERNACULAR_RETRY_HINT = (
+    '上一稿仍含排盘术语（星名/宫名/地支/庙旺/星曜组合等）。'
+    '请彻底重写：读者不懂紫微，正文只能是他/她的生活白描，从「他……」「她……」直接写起，零术语。'
 )
 
 DIVINATION_FORBIDDEN = re.compile(
@@ -326,6 +390,9 @@ def compact_payload(body: dict) -> dict:
     career = palace_corner_by_names(('事业', '事業', '官禄', '官祿'))
     if career:
         topics['career'] = career
+    mobility = palace_corner_by_names(('迁移', '遷移'))
+    if mobility:
+        topics['mobility'] = mobility
     friends = palace_corner_by_names(('交友', '仆役', '僕役'))
     if friends:
         topics['friends'] = friends
@@ -430,6 +497,12 @@ def compact_payload(body: dict) -> dict:
         'patterns': patterns_out,
         'notes': notes,
         'bookQuotes': book_quotes,
+        'coverageHints': {
+            'fortune': ['整体吉凶基调', '婚姻/事业/财运/健康吉凶各一句'],
+            'marriage': ['成家/结婚年龄区间', '子女数量倾向', '男孩女孩倾向', '相处模式', '婚姻吉凶'],
+            'career': ['适合行业岗位', '本地或外地发展', '事业吉凶', '升迁协作'],
+            'stageDepth': '每大限7-9句：工作+健康注意+家人+财运+末句吉凶',
+        },
     }
 
 
@@ -451,6 +524,8 @@ def violates_style(text: str) -> bool:
     if STYLE_BAD.search(raw):
         return True
     if not STYLE_NEED_OVERVIEW.search(raw):
+        return True
+    if not STYLE_NEED_FORTUNE.search(raw):
         return True
     if not STYLE_NEED_STAGES.search(raw):
         return True
@@ -489,14 +564,21 @@ def excessive_repetition(text: str) -> bool:
 
 def truncated_output(text: str) -> bool:
     raw = (text or '').strip()
-    if len(raw) < 400:
-        return True
     if QUALITY_DEGEN.search(raw):
+        return True
+    structure_ok = (
+        STYLE_NEED_OVERVIEW.search(raw)
+        and STYLE_NEED_STAGES.search(raw)
+        and STYLE_NEED_MARRIAGE.search(raw)
+        and STYLE_NEED_ENDING.search(raw)
+    )
+    if structure_ok and len(raw) >= 480:
+        return False
+    if len(raw) < 280:
         return True
     if not STYLE_NEED_ENDING.search(raw):
         return True
-    tail = raw[-120:]
-    if re.search(r'[，,、：:「『$]', tail):
+    if not re.search(r'[。！？…]"?$', raw):
         return True
     return False
 
@@ -535,29 +617,40 @@ def extract_reading_body(text: str) -> str:
 
 
 def needs_generation_retry(text: str) -> bool:
-    """首轮生成后、清洗前：仅对明显坏稿重试，勿因缺「之后说明」误触发。"""
+    """首轮生成后、清洗前：仅对元说明/乱码/过短重试；重复年龄段由 dedupe 后处理。"""
     raw = text or ''
     if is_meta_instruction(raw):
         return True
     if QUALITY_DEGEN.search(raw):
-        return True
-    if duplicate_stage_headings(raw):
-        return True
-    if excessive_repetition(raw):
         return True
     if len(raw.strip()) < 280:
         return True
     return False
 
 
+def chart_ai_max_tokens() -> int:
+    try:
+        return max(3200, min(5200, int(os.environ.get('CF_CHART_AI_MAX_TOKENS', '5200'))))
+    except ValueError:
+        return 5200
+
+
+ENDING_DISCLAIMER = '以上内容依据本盘材料推估吉凶倾向，仅供参考，不作唯一决策依据。'
+
+
+def quality_failure_reason(text: str) -> str | None:
+    if is_meta_instruction(text):
+        return 'meta'
+    if excessive_repetition(text):
+        return 'repetition'
+    if truncated_output(text):
+        return 'truncated'
+    return None
+
+
 def violates_quality(text: str) -> bool:
     """清洗与补注后的终检。"""
-    return (
-        is_meta_instruction(text)
-        or duplicate_stage_headings(text)
-        or excessive_repetition(text)
-        or truncated_output(text)
-    )
+    return quality_failure_reason(text) is not None
 
 
 def dedupe_stage_sections(text: str) -> str:
@@ -590,7 +683,7 @@ def inject_after_stages_note(text: str, last_decade_end: object) -> str:
     end_label = str(last_decade_end) if last_decade_end not in (None, '') else '…'
     note = (
         f'以上各段仅据本盘大限材料写至约{end_label}岁；'
-        '更之后的年龄与境遇无法据此断定，**不代表只能活到这个年纪**。'
+        '更之后的年龄与境遇无法据此断定，不代表只能活到这个年纪。'
     )
     return re.sub(
         r'(\n##\s*婚姻感情)',
@@ -600,12 +693,175 @@ def inject_after_stages_note(text: str, last_decade_end: object) -> str:
     )
 
 
+def append_ending_if_missing(text: str) -> str:
+    raw = (text or '').strip()
+    if not STYLE_NEED_ENDING.search(raw):
+        return raw + f'\n\n## 结尾说明\n{ENDING_DISCLAIMER}'
+    if not re.search(r'仅供参考|不作唯一决策', raw):
+        return re.sub(
+            r'##\s*结尾说明[^\n]*\n?',
+            f'## 结尾说明\n{ENDING_DISCLAIMER}\n',
+            raw,
+            count=1,
+        )
+    return raw
+
+
+def ensure_terminal_punctuation(text: str) -> str:
+    raw = (text or '').strip()
+    if raw and not re.search(r'[。！？…]"?$', raw):
+        return raw + '。'
+    return raw
+
+
+def _clean_prose_sentence(sentence: str) -> str:
+    sent = (sentence or '').strip()
+    if not sent:
+        return ''
+    anchor = NARRATIVE_ANCHOR.search(sent)
+    if anchor and anchor.start() > 0 and (STAR_TOKEN.search(sent[: anchor.start()]) or '宫' in sent[: anchor.start()]):
+        sent = sent[anchor.start():]
+    sent = PALACE_BRANCH_CLAUSE.sub('', sent)
+    sent = STAR_LIST.sub('', sent)
+    sent = JARGON_BRIDGE.sub('', sent)
+    sent = STAR_TOKEN.sub('', sent)
+    sent = re.sub(rf'[宫宮](?:在|落|于|於)[{BRANCH_CHARS}]', '', sent)
+    sent = re.sub(r'[、，,\s]{2,}', '，', sent)
+    sent = re.sub(r'^[，,、：:\s]+', '', sent)
+    sent = re.sub(r'[，,、]+([。！？])', r'\1', sent)
+    sent = re.sub(r'^[，,、]+', '', sent)
+    core = re.sub(r'[\W_]+', '', sent)
+    if len(core) < 4:
+        return ''
+    return sent.strip()
+
+
+def _clean_prose_line(line: str) -> str:
+    if not line.strip() or line.strip().startswith('#'):
+        return line
+    parts = re.split(r'([。！？])', line)
+    rebuilt: list[str] = []
+    i = 0
+    while i < len(parts):
+        chunk = parts[i]
+        punct = parts[i + 1] if i + 1 < len(parts) else ''
+        cleaned = _clean_prose_sentence(chunk + punct)
+        if cleaned and len(re.sub(r'\s+', '', cleaned)) >= 4:
+            rebuilt.append(cleaned)
+        i += 2 if i + 1 < len(parts) else 1
+    return ''.join(rebuilt)
+
+
+def strip_technical_jargon(text: str) -> str:
+    lines = [_clean_prose_line(line) for line in (text or '').split('\n')]
+    raw = '\n'.join(lines)
+    raw = re.sub(r'\n{3,}', '\n\n', raw)
+    return raw.strip()
+
+
+def contains_technical_jargon(text: str) -> bool:
+    body = '\n'.join(
+        line for line in (text or '').split('\n') if not line.strip().startswith('#')
+    )
+    if STAR_TOKEN.search(body):
+        return True
+    if re.search(rf'[宫宮](?:在|落|于|於)[{BRANCH_CHARS}]', body):
+        return True
+    if re.search(r'星曜(?:组合|配置|格局)?', body):
+        return True
+    if re.search(r'[庙旺陷][、，]', body):
+        return True
+    return False
+
+
+def _section_body(text: str, start_pat: str, end_pat: str) -> str:
+    match = re.search(rf'{start_pat}(.*?)(?={end_pat})', text or '', re.DOTALL)
+    return match.group(1) if match else ''
+
+
+def marriage_detail_missing(text: str) -> bool:
+    body = _section_body(text, r'##\s*婚姻感情', r'##\s*工作事业')
+    if len(body.strip()) < 80:
+        return True
+    has_age = bool(re.search(r'(\d+\s*[～~\-—至到]\s*\d+\s*岁|约\s*\d+\s*岁|岁前后|岁上下|成家|结婚|步入婚姻|成婚)', body))
+    has_count = bool(re.search(r'([12一二两三四五]|一孩|二孩|子女|孩子).{0,12}(?:1|2|一|二|少|多|个)', body))
+    has_gender = bool(re.search(r'(男孩|女孩|儿子|女儿|男.*多|女.*多|偏向.*(?:男|女))', body))
+    return not (has_age and has_count and has_gender)
+
+
+def career_detail_missing(text: str) -> bool:
+    body = _section_body(text, r'##\s*工作事业', r'##\s*健康与家人')
+    if len(body.strip()) < 120:
+        return True
+    has_job = bool(re.search(r'(适合|擅长|行业|岗位|职业|工作|从事|方向|管理|技术|销售|服务|公职|创业|手艺)', body))
+    has_place = bool(re.search(r'(外地|本地|家乡|留在家|留在本地|异地|出差|换城市|外出发展|守成|离乡|返乡)', body))
+    return not (has_job and has_place)
+
+
+def stage_chunk_aspects_missing(chunk: str) -> bool:
+    aspects = (
+        r'(工作|事业|职务|岗位|上班|创业|升迁|转岗|单位|同事|打工)',
+        r'(健康|身体|精力|睡眠|累|休息|注意|养生|压力|病|伤|体检)',
+        r'(家人|父母|长辈|配偶|孩子|子女|家庭|亲戚|婆媳|翁婿)',
+        r'(财|钱|收入|开销|存|花|破财|守财|经济|进账|支出)',
+    )
+    hit = sum(1 for pattern in aspects if re.search(pattern, chunk))
+    return hit < 3
+
+
+def stages_too_thin(text: str) -> bool:
+    match = STAGES_SECTION.search(text or '')
+    if not match:
+        return True
+    stages = match.group(1)
+    headings = list(STAGE_HEADING.finditer(stages))
+    if not headings:
+        return True
+    thin = 0
+    aspect_thin = 0
+    for i, heading in enumerate(headings):
+        start = heading.end()
+        end = headings[i + 1].start() if i + 1 < len(headings) else len(stages)
+        chunk = stages[start:end].strip()
+        if len(re.findall(r'[。！？]', chunk)) < 6:
+            thin += 1
+        if stage_chunk_aspects_missing(chunk):
+            aspect_thin += 1
+    threshold = max(2, len(headings) // 2)
+    return thin >= threshold or aspect_thin >= threshold
+
+
+def fortune_detail_missing(text: str) -> bool:
+    body = _section_body(text, r'##\s*吉凶总览', r'##\s*人生阶段')
+    if len(body.strip()) < 60:
+        return True
+    has_overall = bool(
+        re.search(r'(偏吉|偏凶|吉凶|较顺|较阻滞|多波折|宜守|宜进|先苦后甜|先甜后苦|平稳|有利|不利|贵人|破财)', body)
+    )
+    has_aspects = len(
+        re.findall(r'(婚姻|事业|工作|财运|健康|家人).{0,24}(吉|凶|顺|阻滞|波折|利|不利|宜|忌)', body)
+    ) >= 2
+    return not (has_overall and has_aspects)
+
+
+def content_detail_missing(text: str) -> bool:
+    return (
+        fortune_detail_missing(text)
+        or marriage_detail_missing(text)
+        or career_detail_missing(text)
+        or stages_too_thin(text)
+    )
+
+
 def sanitize_chart_content(text: str, last_decade_end: object = None) -> str:
     raw = extract_reading_body(text)
     raw = re.sub(r'（注：[^）]*）', '', raw)
     raw = re.sub(r'\n{3,}', '\n\n', raw)
     raw = dedupe_stage_sections(raw)
     raw = inject_after_stages_note(raw, last_decade_end)
+    raw = append_ending_if_missing(raw)
+    raw = strip_technical_jargon(raw)
+    raw = ensure_terminal_punctuation(raw)
     return raw.strip()
 
 
@@ -698,6 +954,7 @@ def call_model(
     system_prompt: str = SYSTEM_PROMPT,
     max_tokens: int = 3600,
     retry: bool = False,
+    retry_hint: str = REPETITION_RETRY_HINT,
 ) -> str:
     account_id = os.environ.get('CF_ACCOUNT_ID', '')
     token = os.environ.get('CF_API_TOKEN', '')
@@ -718,7 +975,7 @@ def call_model(
         messages.extend(
             [
                 {'role': 'assistant', 'content': '好的。'},
-                {'role': 'user', 'content': REPETITION_RETRY_HINT},
+                {'role': 'user', 'content': retry_hint},
             ]
         )
 
@@ -806,7 +1063,7 @@ class Handler(BaseHTTPRequestHandler):
                 200,
                 {
                     'ok': True,
-                    'prompt': 'vernacular-detail-bookquotes-v10',
+                    'prompt': 'vernacular-detail-bookquotes-v18-stage-detail',
                     'divination': 'divination-ai-v1',
                 },
             )
@@ -820,11 +1077,47 @@ class Handler(BaseHTTPRequestHandler):
         try:
             compact = compact_payload(payload)
             last_end = compact.get('lastDecadeEnd')
-            content = extract_reading_body(call_model(compact, max_tokens=5200))
+            max_tok = chart_ai_max_tokens()
+            content = extract_reading_body(call_model(compact, max_tokens=max_tok))
             if needs_generation_retry(content):
                 sys.stderr.write('chart-ai: bad first draft, retry once\n')
-                content = extract_reading_body(call_model(compact, max_tokens=5200, retry=True))
+                content = extract_reading_body(call_model(compact, max_tokens=max_tok, retry=True))
             content = sanitize_chart_content(content, last_end)
+            if contains_technical_jargon(content):
+                sys.stderr.write('chart-ai: jargon after sanitize, retry plain\n')
+                content = sanitize_chart_content(
+                    extract_reading_body(
+                        call_model(
+                            compact,
+                            max_tokens=max_tok,
+                            retry=True,
+                            retry_hint=PLAIN_VERNACULAR_RETRY_HINT,
+                        )
+                    ),
+                    last_end,
+                )
+            if content_detail_missing(content):
+                sys.stderr.write('chart-ai: content too thin, retry detail\n')
+                content = sanitize_chart_content(
+                    extract_reading_body(
+                        call_model(
+                            compact,
+                            max_tokens=max_tok,
+                            retry=True,
+                            retry_hint=DETAIL_RETRY_HINT,
+                        )
+                    ),
+                    last_end,
+                )
+            if violates_quality(content):
+                reason = quality_failure_reason(content) or 'unknown'
+                if reason == 'truncated':
+                    sys.stderr.write('chart-ai: truncated after sanitize, retry with extra tokens\n')
+                    extra = min(5200, max_tok + 800)
+                    content = sanitize_chart_content(
+                        extract_reading_body(call_model(compact, max_tokens=extra, retry=True)),
+                        last_end,
+                    )
             if violates_rules(content):
                 sys.stderr.write('chart-ai: forbidden hit, reject\n')
                 self._send_json(502, {'error': 'AI 輸出含不宜表述，已拒絕返回，請稍後重試。'})
@@ -834,7 +1127,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json(502, {'error': 'AI 輸出格式不符（需白話總覽、四專題與年齡段），請稍後重試。'})
                 return
             if violates_quality(content):
-                sys.stderr.write('chart-ai: quality still bad, reject\n')
+                reason = quality_failure_reason(content) or 'unknown'
+                sys.stderr.write(f'chart-ai: quality still bad ({reason}), reject\n')
                 self._send_json(502, {'error': 'AI 输出格式异常或未完成，请稍后重试。'})
                 return
             self._send_json(200, {'content': content})
