@@ -65,7 +65,7 @@
         <p class="note ai-disclaimer">
           {{
             display(
-              '以下為 AI 依本盤材料生成的白話解读，含吉凶倾向推估，仅供参考，不作唯一决策依据。请点「命盘解读」「古籍原文」核对站内出处。',
+              '以下为盘面逻辑推演（全息诊断），语气偏硬，仅供参考，不作唯一决策依据。请点「命盘解读」「古籍原文」核对站内出处。',
               false,
             )
           }}
@@ -74,9 +74,34 @@
           {{ display('AI 解讀服務尚未配置，暫不可用。', false) }}
         </p>
         <template v-else>
+          <div class="ai-timeline">
+            <p class="note ai-timeline-hint">
+              {{ display('選填：過往 1～2 件大事（年份 + 事件），用於驗盤；不填則跳過驗盤段。', false) }}
+            </p>
+            <div v-for="(row, idx) in timelineRows" :key="idx" class="ai-timeline-row">
+              <el-input-number
+                v-model="row.year"
+                :min="1900"
+                :max="2100"
+                :controls="false"
+                :disabled="aiLoading"
+                class="ai-year"
+                placeholder="年份"
+              />
+              <el-input
+                v-model="row.event"
+                :disabled="aiLoading"
+                maxlength="80"
+                clearable
+                class="ai-event"
+                :placeholder="display('事件简述，如结婚/升迁/破财', false)"
+              />
+            </div>
+          </div>
+
           <div v-if="!aiContent && !aiLoading" class="ai-actions">
-            <el-button type="primary" :disabled="aiLoading" @click="$emit('generate-ai')">
-              {{ display('生成解讀說明', false) }}
+            <el-button type="primary" :disabled="aiLoading" @click="emitGenerate">
+              {{ display('生成全息診斷', false) }}
             </el-button>
             <span class="ai-wait-hint">
               {{ display('生成較耗時（約一至兩分鐘），請稍候，勿切換或離開本頁。', false) }}
@@ -88,7 +113,7 @@
           </div>
           <p v-if="aiError" class="ai-error">{{ aiError }}</p>
           <div v-if="aiError && !aiLoading" class="ai-actions">
-            <el-button type="primary" plain @click="$emit('generate-ai')">
+            <el-button type="primary" plain @click="emitGenerate">
               {{ display('重試', false) }}
             </el-button>
             <span class="ai-wait-hint">
@@ -97,8 +122,9 @@
           </div>
           <article v-if="aiContent" class="ai-result">
             <div class="ai-toolbar">
+              <span class="ai-mode-tag">{{ display('全息診斷', false) }}</span>
               <el-button size="small" plain @click="copyAi">{{ display('複製全文', false) }}</el-button>
-              <el-button size="small" plain :disabled="aiLoading" @click="$emit('generate-ai')">
+              <el-button size="small" plain :disabled="aiLoading" @click="emitGenerate">
                 {{ display('重新生成', false) }}
               </el-button>
               <span v-if="!aiLoading" class="ai-wait-hint">
@@ -109,7 +135,7 @@
               <el-icon class="is-loading"><Loading /></el-icon>
               <span>{{ display('正在重新生成，請稍候，勿離開本頁…', false) }}</span>
             </div>
-            <pre class="ai-body">{{ display(aiContent, false) }}</pre>
+            <div class="ai-body ai-md" v-html="aiHtml" />
           </article>
         </template>
       </el-tab-pane>
@@ -133,12 +159,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, type PropType } from 'vue';
+import { computed, defineComponent, reactive, ref, type PropType } from 'vue';
 import { Loading } from '@element-plus/icons-vue';
 import type { ExcerptItem, MatchedPattern, PalaceReading } from '@/types';
 import { useDisplayText } from '@/composables/useDisplayText';
 import { useCenterScrollTabs } from '@/composables/useCenterScrollTabs';
 import { copyText } from '@/utils/copy';
+import { renderSimpleMarkdown } from '@/utils/simpleMarkdown';
 import ChartLegend from './ChartLegend.vue';
 import ExcerptPanel from './ExcerptPanel.vue';
 import { SANFANG_BAIKE, SANFANG_DEF, toReadingQuote } from '@/data/readingQuotes';
@@ -157,14 +184,22 @@ export default defineComponent({
   },
   emits: {
     goto: (_id: string) => true,
-    'generate-ai': () => true,
+    'generate-ai': (_payload: { timeline: Array<{ year: number; event: string }> }) => true,
   },
-  setup(props) {
+  setup(props, { emit }) {
     const { display } = useDisplayText();
     const activeTab = ref('reading');
     const tabsRootRef = ref<HTMLElement>();
     const tabNames = ['reading', 'ai', 'pattern', 'excerpt'] as const;
     useCenterScrollTabs(tabsRootRef, activeTab, tabNames);
+
+    const timelineRows = reactive([
+      { year: undefined as number | undefined, event: '' },
+      { year: undefined as number | undefined, event: '' },
+    ]);
+
+    const aiHtml = computed(() => renderSimpleMarkdown(display(props.aiContent, false)));
+
     const panelStyle = {
       background: 'var(--zw-paper)',
       borderColor: 'var(--zw-line)',
@@ -179,6 +214,13 @@ export default defineComponent({
     const copyAi = () => {
       void copyText(props.aiContent);
     };
+    const emitGenerate = () => {
+      const timeline = timelineRows
+        .filter((r) => typeof r.year === 'number' && r.event.trim())
+        .slice(0, 2)
+        .map((r) => ({ year: r.year as number, event: r.event.trim() }));
+      emit('generate-ai', { timeline });
+    };
     return {
       display,
       activeTab,
@@ -186,6 +228,9 @@ export default defineComponent({
       panelStyle,
       formatSong,
       copyAi,
+      timelineRows,
+      emitGenerate,
+      aiHtml,
       sanFangDef: toReadingQuote(SANFANG_DEF),
       sanFangBaike: toReadingQuote(SANFANG_BAIKE),
     };
@@ -285,6 +330,37 @@ export default defineComponent({
   border-left: 3px solid var(--zw-gold);
   padding-left: 10px;
 }
+.ai-timeline {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--zw-line);
+  background: var(--zw-quote);
+}
+.ai-timeline-hint {
+  margin-bottom: 8px;
+}
+.ai-timeline-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ai-timeline-row:last-child {
+  margin-bottom: 0;
+}
+.ai-year {
+  width: 6.5rem;
+  flex: 0 0 auto;
+}
+.ai-event {
+  flex: 1 1 auto;
+}
+.ai-mode-tag {
+  font-size: 0.75em;
+  color: var(--zw-gold);
+  border: 1px solid var(--zw-gold);
+  padding: 2px 8px;
+  margin-right: 4px;
+}
 .ai-actions {
   display: flex;
   flex-wrap: wrap;
@@ -339,5 +415,46 @@ export default defineComponent({
   background: var(--zw-quote);
   border: 1px solid var(--zw-line);
   padding: 14px 16px;
+}
+.ai-md {
+  white-space: normal;
+}
+.ai-md :deep(h2) {
+  font-size: 1.05em;
+  margin: 1.1em 0 0.45em;
+  color: var(--zw-gold);
+  font-weight: 600;
+}
+.ai-md :deep(h2:first-child) {
+  margin-top: 0;
+}
+.ai-md :deep(h3) {
+  font-size: 0.98em;
+  margin: 0.85em 0 0.35em;
+  font-weight: 600;
+}
+.ai-md :deep(p) {
+  margin: 0.35em 0;
+}
+.ai-md :deep(ul),
+.ai-md :deep(ol) {
+  margin: 0.35em 0 0.55em;
+  padding-left: 1.35em;
+}
+.ai-md :deep(li) {
+  margin: 0.2em 0;
+}
+.ai-md :deep(strong) {
+  font-weight: 600;
+  color: var(--zw-primary);
+}
+.ai-md :deep(em) {
+  font-style: normal;
+  color: var(--zw-muted);
+}
+.ai-md :deep(code) {
+  font-size: 0.92em;
+  background: color-mix(in srgb, var(--zw-line) 55%, transparent);
+  padding: 0.05em 0.3em;
 }
 </style>

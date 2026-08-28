@@ -69,17 +69,17 @@ npm run build:data
 
 ## 排盘 AI 解读（可选）
 
-「AI 解读」页签经薄代理调用 Cloudflare Workers AI，用白话整理本盘材料：人物总览、人生阶段、婚姻/工作/健康与家人/财运专题，以及近前后五年（含上述四方面），不编吉凶断语。
+「AI 解读」页签经薄代理调用 Cloudflare Workers AI，生成**全息诊断**（验盘、命格、四化、六维、时空战略等），语气偏硬，仅供参考。
 
 ### 前端
 
 复制 `.env.example` 为 `.env`，设置：
 
 ```bash
-VITE_CHART_AI_API=/api/chart-ai-reading
+VITE_CHART_AI_HOLOGRAPHIC_API=/api/chart-ai-holographic
 ```
 
-生产环境经 SPA 服务把 `/api/chart-ai-reading` 反代到本机 `8787` 端口，无需跨域。本地 `yarn dev` 时 Vite 同样把该路径代理到 `127.0.0.1:8787`。
+生产环境经 SPA 服务把 `/api/chart-ai-holographic` 反代到本机 `8787` 端口，无需跨域。本地 `yarn dev` 时 Vite 同样把该路径代理到 `127.0.0.1:8787`。
 
 ### 服务端代理
 

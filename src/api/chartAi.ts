@@ -1,19 +1,31 @@
-import type { ChartAiPayload } from '@/utils/chartAiPayload';
+import type { ChartAiPayload, ChartAiTimelineEvent } from '@/utils/chartAiPayload';
 
-const API_URL = (import.meta.env.VITE_CHART_AI_API as string | undefined)?.trim() || '';
+const API_URL =
+  (import.meta.env.VITE_CHART_AI_HOLOGRAPHIC_API as string | undefined)?.trim() ||
+  (import.meta.env.VITE_CHART_AI_API as string | undefined)?.trim() ||
+  '/api/chart-ai-holographic';
 
 export function isChartAiConfigured(): boolean {
   return Boolean(API_URL);
 }
 
-export async function fetchChartAiReading(payload: ChartAiPayload): Promise<string> {
+export function fetchChartAiHolographic(
+  payload: ChartAiPayload & {
+    timeline?: ChartAiTimelineEvent[];
+    anchorYear?: number;
+  },
+): Promise<string> {
   if (!API_URL) {
-    throw new Error('AI 解讀服務未配置，請聯繫站點管理員。');
+    return Promise.reject(new Error('全息診斷服務未配置，請聯繫站點管理員。'));
   }
 
+  return postChartAi(API_URL, payload);
+}
+
+async function postChartAi(url: string, payload: unknown): Promise<string> {
   let res: Response;
   try {
-    res = await fetch(API_URL, {
+    res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

@@ -12,9 +12,9 @@ PORT = int(os.environ.get("JINGPAN_PORT", "80"))
 AI_UPSTREAM_BASE = os.environ.get("JINGPAN_AI_UPSTREAM_BASE", "http://127.0.0.1:8787").rstrip("/")
 # 兼容旧环境变量
 CHART_AI_UPSTREAM = os.environ.get(
-    "JINGPAN_CHART_AI_UPSTREAM", f"{AI_UPSTREAM_BASE}/api/chart-ai-reading"
+    "JINGPAN_CHART_AI_UPSTREAM", f"{AI_UPSTREAM_BASE}/api/chart-ai-holographic"
 )
-AI_API_PATHS = frozenset({"/api/chart-ai-reading", "/api/divination-ai"})
+AI_API_PATHS = frozenset({"/api/chart-ai-holographic", "/api/divination-ai"})
 
 
 class SpaHandler(SimpleHTTPRequestHandler):
@@ -38,7 +38,7 @@ class SpaHandler(SimpleHTTPRequestHandler):
 
     def _upstream_url(self) -> str:
         path = self._api_path()
-        if path == "/api/chart-ai-reading" and "JINGPAN_CHART_AI_UPSTREAM" in os.environ:
+        if path == "/api/chart-ai-holographic" and "JINGPAN_CHART_AI_UPSTREAM" in os.environ:
             return CHART_AI_UPSTREAM
         return f"{AI_UPSTREAM_BASE}{path}"
 

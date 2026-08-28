@@ -118,7 +118,7 @@ import { matchPatterns } from '@/utils/patternMatch';
 import { extractExcerpts } from '@/utils/excerpt';
 import { buildPalaceReadings } from '@/utils/palaceReading';
 import { upgradeQuoteVernacular } from '@/utils/bookVernacular';
-import { fetchChartAiReading, isChartAiConfigured } from '@/api/chartAi';
+import { fetchChartAiHolographic, isChartAiConfigured } from '@/api/chartAi';
 import { buildChartAiPayload, hasChartAiMaterial } from '@/utils/chartAiPayload';
 import { useAppStore } from '@/store/app';
 import { useChartSessionStore } from '@/store/chartSession';
@@ -286,10 +286,10 @@ export default defineComponent({
         session.clearSnapshot();
         ElMessage.success(display('已重置表單與命盤', false));
       },
-      async handleAiGenerate() {
+      async handleAiGenerate(opts?: { timeline?: Array<{ year: number; event: string }> }) {
         if (!_data.chart || _data.aiLoading) return;
         if (!aiConfigured) {
-          ElMessage.warning(display('AI 解讀服務尚未配置', false));
+          ElMessage.warning(display('全息診斷服務尚未配置', false));
           return;
         }
         const payload = buildChartAiPayload({
@@ -300,13 +300,17 @@ export default defineComponent({
           readings: readings.value,
         });
         if (!hasChartAiMaterial(payload)) {
-          ElMessage.warning(display('本盤材料不足，無法生成 AI 解讀說明', false));
+          ElMessage.warning(display('本盤材料不足，無法生成全息診斷', false));
           return;
         }
         _data.aiLoading = true;
         _data.aiError = '';
         try {
-          _data.aiContent = await fetchChartAiReading(payload);
+          const timeline = (opts?.timeline || []).slice(0, 2);
+          _data.aiContent = await fetchChartAiHolographic({
+            ...payload,
+            timeline: timeline.length ? timeline : undefined,
+          });
         } catch (err) {
           _data.aiError = err instanceof Error ? err.message : display('生成失敗，請稍後重試', false);
         } finally {

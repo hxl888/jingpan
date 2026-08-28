@@ -30,4 +30,4 @@ ssh "$HOST" "systemctl restart jingpan"
 echo "==> Proxy health"
 ssh "$HOST" "curl -sf http://127.0.0.1:8787/health && echo"
 
-echo "Done. Build frontend with: VITE_CHART_AI_API=/api/chart-ai-reading yarn build"
+echo "Done. Build frontend with: VITE_CHART_AI_HOLOGRAPHIC_API=/api/chart-ai-holographic yarn build"

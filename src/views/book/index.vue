@@ -1,53 +1,5 @@
 <template>
   <div class="page-container book-page">
-    <div class="book-chrome">
-      <div class="toolbar flex flex-wrap items-center gap-2">
-        <div class="volume-tabs">
-          <button
-            v-for="v in volumes"
-            :key="v"
-            type="button"
-            class="vol-btn"
-            :class="{ active: activeVolume === v }"
-            @click="handleVolume(v)"
-          >
-            {{ display(volumeLabel(v), false) }}
-          </button>
-        </div>
-        <SheetSelect
-          v-model="activeId"
-          class="book-toc-sheet md:hidden"
-          :options="tocOptions"
-          :title="display('選擇章節', false)"
-          :placeholder="display('選擇章節', false)"
-          :cancel-text="display('取消', false)"
-          @change="handleJump"
-        />
-        <button
-          v-if="volumeHasVernacular"
-          type="button"
-          class="vernacular-toggle"
-          :class="{ active: showVernacular }"
-          @click="showVernacular = !showVernacular"
-        >
-          {{ display(showVernacular ? '隱藏白話' : '顯示白話', false) }}
-        </button>
-      </div>
-
-      <p v-if="volumeHasVernacular" class="vernacular-hint">
-        {{
-          display(
-            showVernacular
-              ? '白話用直白口语对照原文，便于阅读；图表／标签句可能无白话。'
-              : '可点「显示白话」查看卷一正文的直白今译（赋文、论断、问答、歌诀等）。',
-            false,
-          )
-        }}
-      </p>
-
-      <p class="source-hint">{{ display(sourceHint, false) }}</p>
-    </div>
-
     <div class="book-layout">
       <nav class="toc hidden md:block">
         <h2 class="mb-2 font-semibold">{{ display(volumeLabel(activeVolume) + '目錄', false) }}</h2>
@@ -68,6 +20,51 @@
         data-scroll-root
         @scroll="handleScroll"
       >
+        <div class="book-chrome">
+          <div class="toolbar">
+            <div class="volume-tabs">
+              <button
+                v-for="v in volumes"
+                :key="v"
+                type="button"
+                class="vol-btn"
+                :class="{ active: activeVolume === v }"
+                @click="handleVolume(v)"
+              >
+                {{ display(volumeLabel(v), false) }}
+              </button>
+            </div>
+            <div class="toolbar-side">
+              <SheetSelect
+                v-model="activeId"
+                class="book-toc-sheet md:hidden"
+                :options="tocOptions"
+                :title="display('選擇章節', false)"
+                :placeholder="display('選擇章節', false)"
+                :cancel-text="display('取消', false)"
+                @change="handleJump"
+              />
+              <button
+                v-if="volumeHasVernacular"
+                type="button"
+                class="vernacular-toggle"
+                :class="{ active: showVernacular }"
+                @click="showVernacular = !showVernacular"
+              >
+                {{ display(showVernacular ? '隱藏白話' : '顯示白話', false) }}
+              </button>
+              <button
+                v-if="hasBookHint"
+                type="button"
+                class="hint-toggle"
+                @click="showBookHint = true"
+              >
+                {{ display('說明', false) }}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="reader rounded-lg border p-3 md:p-5" :style="cardStyle">
           <section
             v-for="chapter in renderedChapters"
@@ -95,6 +92,27 @@
         </div>
       </div>
     </div>
+
+    <el-dialog
+      v-model="showBookHint"
+      :title="display('閱讀說明', false)"
+      width="92%"
+      class="book-hint-dialog"
+      append-to-body
+      destroy-on-close
+    >
+      <div class="hint-dialog-body">
+        <p v-if="volumeHasVernacular">{{ display(vernacularHintText, false) }}</p>
+        <p v-if="sourceHint" :class="{ 'mt-3': volumeHasVernacular }">
+          {{ display(sourceHint, false) }}
+        </p>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="showBookHint = false">
+          {{ display('知道了', false) }}
+        </el-button>
+      </template>
+    </el-dialog>
 
     <button
       v-if="showFloatBack"
@@ -175,6 +193,7 @@ export default defineComponent({
     );
     const activeId = ref(filteredToc.value[0]?.id ?? '');
     const showVernacular = ref(sessionStorage.getItem(VERNACULAR_PREF_KEY) === '1');
+    const showBookHint = ref(false);
     const scrollerRef = ref<HTMLElement>();
     const mountedChapterIds = ref<Set<string>>(new Set());
     const cardStyle = {
@@ -193,6 +212,16 @@ export default defineComponent({
 
     const volumeHasVernacular = computed(() =>
       filteredToc.value.some((item) => chapterHasVernacular(item.id)),
+    );
+
+    const vernacularHintText = computed(() =>
+      showVernacular.value
+        ? '白話用直白口语对照原文，便于阅读；图表／标签句可能无白话。'
+        : '可点「显示白话」查看卷一正文的直白今译（赋文、论断、问答、歌诀等）。',
+    );
+
+    const hasBookHint = computed(
+      () => volumeHasVernacular.value || Boolean(sourceHint.value),
     );
 
     const isChapterMounted = (id: string) => mountedChapterIds.value.has(id);
@@ -522,6 +551,9 @@ export default defineComponent({
       display,
       cardStyle,
       sourceHint,
+      vernacularHintText,
+      hasBookHint,
+      showBookHint,
       handleJump,
       handleVolume,
       handleScroll,
@@ -550,15 +582,17 @@ export default defineComponent({
   min-height: 0;
   overflow: hidden;
   box-sizing: border-box;
-  padding-top: 12px;
+  padding-top: 8px;
   padding-bottom: 8px;
 }
 .book-chrome {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   flex: none;
-  z-index: 25;
-  margin: 0 -2px 10px;
-  padding: 0 2px 10px;
-  background: color-mix(in srgb, var(--zw-bg) 94%, transparent);
+  margin: 0 0 8px;
+  padding: 0 0 8px;
+  background: color-mix(in srgb, var(--zw-bg) 96%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid color-mix(in srgb, var(--zw-line) 70%, transparent);
@@ -571,13 +605,43 @@ export default defineComponent({
   gap: 16px;
   align-items: stretch;
 }
-.book-toc-sheet {
-  width: 100%;
+.reader-scroll {
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 .toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 0;
 }
-.vernacular-toggle {
+.toolbar-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 100%;
+  min-width: 0;
+}
+.book-toc-sheet {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
+}
+.book-toc-sheet :deep(.sheet-select) {
+  width: 100%;
+}
+@media (min-width: 768px) {
+  .toolbar-side {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+}
+.vernacular-toggle,
+.hint-toggle {
   border: 1px solid var(--zw-line);
   background: transparent;
   color: var(--zw-ink);
@@ -588,23 +652,20 @@ export default defineComponent({
   cursor: pointer;
   border-radius: 6px;
   white-space: nowrap;
+  flex: none;
 }
 .vernacular-toggle.active {
   border-color: var(--zw-gold);
   color: var(--zw-primary);
   background: color-mix(in srgb, var(--zw-paper) 70%, var(--zw-gold));
 }
-.vernacular-hint {
-  margin: 8px 0 0;
-  font-size: 12px;
-  line-height: 1.6;
-  color: color-mix(in srgb, var(--zw-ink) 70%, var(--zw-muted));
+.hint-toggle {
+  color: color-mix(in srgb, var(--zw-ink) 78%, var(--zw-muted));
 }
 .volume-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-right: auto;
 }
 .vol-btn {
   border: 1px solid var(--zw-line);
@@ -623,12 +684,14 @@ export default defineComponent({
   font-weight: 600;
   background: color-mix(in srgb, var(--zw-paper) 70%, var(--zw-gold));
 }
-.source-hint {
-  margin: 8px 0 0;
-  font-size: 12px;
-  line-height: 1.6;
-  color: color-mix(in srgb, var(--zw-ink) 72%, transparent);
-  word-break: break-all;
+.hint-dialog-body {
+  font-size: 14px;
+  line-height: 1.7;
+  color: color-mix(in srgb, var(--zw-ink) 88%, transparent);
+  word-break: break-word;
+}
+.hint-dialog-body p {
+  margin: 0;
 }
 .toc {
   min-height: 0;
@@ -650,19 +713,12 @@ export default defineComponent({
   color: var(--zw-primary);
   font-weight: 600;
 }
-.reader-scroll {
-  min-height: 0;
-  height: 100%;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
 .reader {
   /* 卡片随正文高度，不再撑满视口留白 */
   min-height: 0;
 }
 .chapter {
-  scroll-margin-top: 12px;
+  scroll-margin-top: 88px;
   margin-bottom: 24px;
 }
 .chapter:last-child {

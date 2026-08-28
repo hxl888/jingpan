@@ -13,6 +13,11 @@ export interface ChartAiStar {
   mutagen?: string;
 }
 
+export interface ChartAiTimelineEvent {
+  year: number;
+  event: string;
+}
+
 export interface ChartAiDecade {
   /** 如 5-14 */
   range: string;
@@ -34,8 +39,20 @@ export interface ChartAiNearTermYear {
   age: number;
   isCurrent: boolean;
   decadeRange: string;
+  /** 该年虚岁所落大限宫 */
   themePalace: string;
+  /** 大限宫本命星（摘要） */
   stars: ChartAiStar[];
+  /** 流年干支，如 丙午 */
+  yearlyGanZhi?: string;
+  /** 流年命宫 */
+  yearlyMingPalace?: string;
+  /** 流年四化：禄权科忌 → 星 + 本命落宫 */
+  yearlyMutagen?: Partial<
+    Record<'禄' | '权' | '科' | '忌', { star: string; palace: string }>
+  >;
+  /** 流曜落宫（流魁/流羊等） */
+  yearlyFlow?: Array<{ name: string; palace: string }>;
 }
 
 export interface ChartAiNearTerm {
@@ -67,6 +84,7 @@ export interface ChartAiPayload {
     heavenlyStem?: string;
     earthlyBranch?: string;
     isBodyPalace?: boolean;
+    emptyMajor?: boolean;
     stars: ChartAiStar[];
   }>;
   /** 按年龄排序的各大限段 */
@@ -98,6 +116,10 @@ export interface ChartAiPayload {
     classic: string;
     vernacular: string;
   }>;
+  /** 全息验盘用：过往大事（可选） */
+  timeline?: ChartAiTimelineEvent[];
+  /** 全息时空锚点年 */
+  anchorYear?: number;
 }
 
 function formatStar(s: ChartStar): ChartAiStar {
@@ -163,28 +185,100 @@ function parseBirthYear(solarDate: string): number | null {
   return Number.isFinite(y) ? y : null;
 }
 
-/** 当前公历年前后各 5 年，对照大限主题（虚岁约 = 年 - 出生年 + 1） */
-function buildNearTerm(solarDate: string, decades: ChartAiDecade[]): ChartAiNearTerm | null {
-  const birthYear = parseBirthYear(solarDate);
+const MUTAGEN_KEYS = ['禄', '权', '科', '忌'] as const;
+
+function palaceLabel(p: { name: string; aliasName?: string } | undefined): string {
+  if (!p) return '';
+  return (p as { aliasName?: string }).aliasName || p.name;
+}
+
+function findNatalPalaceForStar(
+  palaces: ChartPalace[],
+  starName: string,
+): ChartPalace | undefined {
+  return palaces.find((p) =>
+    [...p.majorStars, ...p.minorStars, ...p.adjectiveStars].some((s) => s.name === starName),
+  );
+}
+
+/** 当前公历年前后各 5 年：大限叠宫 + 真实流年四化/流曜 */
+function buildNearTerm(
+  chart: BuiltChart,
+  palaces: ChartPalace[],
+  decades: ChartAiDecade[],
+): ChartAiNearTerm | null {
+  const birthYear = parseBirthYear(chart.solarDate);
   if (!birthYear) return null;
   const currentYear = new Date().getFullYear();
   const fromYear = currentYear - 5;
   const toYear = currentYear + 5;
   const years: ChartAiNearTermYear[] = [];
+
   for (let year = fromYear; year <= toYear; year += 1) {
     const age = year - birthYear + 1;
     const hit =
       decades.find((d) => age >= d.start && age <= d.end) ||
       decades.find((d) => age >= d.start && age <= d.end + 1);
-    years.push({
+
+    const row: ChartAiNearTermYear = {
       year,
       age,
       isCurrent: year === currentYear,
       decadeRange: hit?.range || '',
       themePalace: hit?.themePalace || '',
-      stars: hit ? hit.stars.slice(0, 12) : [],
-    });
+      stars: hit ? hit.stars.slice(0, 10) : [],
+    };
+
+    try {
+      const h = chart.astrolabe.horoscope(`${year}-06-15`);
+      const yearly = h.yearly as {
+        heavenlyStem?: string;
+        earthlyBranch?: string;
+        index?: number;
+        mutagen?: string[];
+        stars?: Array<Array<{ name: string; type?: string; scope?: string }>>;
+      } | null;
+      if (yearly) {
+        const stem = String(yearly.heavenlyStem || '');
+        const branch = String(yearly.earthlyBranch || '');
+        if (stem || branch) row.yearlyGanZhi = `${stem}${branch}`;
+        const yIdx = typeof yearly.index === 'number' ? yearly.index : -1;
+        if (yIdx >= 0 && yIdx < palaces.length) {
+          row.yearlyMingPalace = palaceLabel(palaces[yIdx]);
+        }
+
+        const mutagenStars = Array.isArray(yearly.mutagen) ? yearly.mutagen : [];
+        if (mutagenStars.length) {
+          const mutagen: NonNullable<ChartAiNearTermYear['yearlyMutagen']> = {};
+          mutagenStars.slice(0, 4).forEach((starName, i) => {
+            const key = MUTAGEN_KEYS[i];
+            if (!key || !starName) return;
+            const seat = findNatalPalaceForStar(palaces, starName);
+            mutagen[key] = { star: starName, palace: palaceLabel(seat) };
+          });
+          row.yearlyMutagen = mutagen;
+        }
+
+        const flow: Array<{ name: string; palace: string }> = [];
+        const cells = Array.isArray(yearly.stars) ? yearly.stars : [];
+        cells.forEach((cell, idx) => {
+          if (!Array.isArray(cell) || idx >= palaces.length) return;
+          const palace = palaceLabel(palaces[idx]);
+          cell.forEach((s) => {
+            const name = String(s?.name || '').trim();
+            if (!name.startsWith('流') && name !== '年解') return;
+            flow.push({ name, palace });
+          });
+        });
+        if (flow.length) row.yearlyFlow = flow.slice(0, 14);
+      }
+    } catch {
+      // horoscope 失败时仍保留大限叠宫信息
+    }
+
+    years.push(row);
   }
+
   return { fromYear, toYear, currentYear, years };
 }
 
@@ -195,8 +289,10 @@ export function buildChartAiPayload(input: {
   excerpts: ExcerptItem[];
   readings: PalaceReading[];
 }): ChartAiPayload {
-  const { chart, palaces, patterns, excerpts, readings } = input;
-  const decades = buildDecades(palaces);
+  const { chart, patterns, excerpts, readings } = input;
+  // AI 解盘以本命盘为准；流年材料走 nearTerm，避免把流曜混进本命宫
+  const basePalaces = chart.palaces;
+  const decades = buildDecades(basePalaces);
 
   return {
     meta: {
@@ -207,17 +303,18 @@ export function buildChartAiPayload(input: {
       soul: chart.soul,
       body: chart.body,
     },
-    sanFangMing: buildSanFangMing(palaces),
-    palaces: palaces.map((p) => ({
+    sanFangMing: buildSanFangMing(basePalaces),
+    palaces: basePalaces.map((p) => ({
       name: p.name,
       aliasName: p.aliasName,
       heavenlyStem: p.heavenlyStem,
       earthlyBranch: p.earthlyBranch,
       isBodyPalace: p.isBodyPalace,
+      emptyMajor: (p.majorStars?.length ?? 0) === 0,
       stars: palaceStars(p),
     })),
     decades,
-    nearTerm: buildNearTerm(chart.solarDate, decades),
+    nearTerm: buildNearTerm(chart, basePalaces, decades),
     patterns: patterns.map((p) => ({
       name: p.name,
       condition: p.condition,
@@ -237,7 +334,8 @@ export function buildChartAiPayload(input: {
         }))
         .filter((q) => q.vernacular.length > 0),
     ),
-    bookQuotes: collectChartBookQuotes(palaces),
+    bookQuotes: collectChartBookQuotes(basePalaces),
+    anchorYear: new Date().getFullYear(),
   };
 }
 

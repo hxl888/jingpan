@@ -30,8 +30,8 @@ if not raw_path or not raw_path.is_file():
     sys.exit(1)
 
 raw = json.loads(raw_path.read_text(encoding='utf-8'))
-compact = mod.compact_payload(raw)
+compact = mod.compact_holographic_payload(raw)
 print(json.dumps(compact, ensure_ascii=False, indent=2))
 print('---', file=sys.stderr)
 print(f'chars={len(json.dumps(compact, ensure_ascii=False))}', file=sys.stderr)
-print(f'decades={len(compact.get("decades") or [])} notes={len(compact.get("notes") or [])}', file=sys.stderr)
+print(f'decades={len(compact.get("decades") or [])} palaces={len(compact.get("palaces") or [])}', file=sys.stderr)
