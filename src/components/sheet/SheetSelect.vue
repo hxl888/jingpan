@@ -25,7 +25,7 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref, type PropType } from 'vue';
+import { computed, defineComponent, nextTick, ref, type PropType } from 'vue';
 import BottomSheet from './BottomSheet.vue';
 import SheetField from './SheetField.vue';
 
@@ -55,10 +55,12 @@ export default defineComponent({
       return hit?.label ?? '';
     });
 
-    const handlePick = (val: string | number) => {
+    /** 先关弹层解锁 body，再通知父级，避免 scrollIntoView 在 position:fixed 锁页时算错位置 */
+    const handlePick = async (val: string | number) => {
+      open.value = false;
+      await nextTick();
       emit('update:modelValue', val);
       emit('change', val);
-      open.value = false;
     };
 
     return { open, displayText, handlePick };

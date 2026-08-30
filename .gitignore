@@ -7,4 +7,6 @@ dist
 *.local
 .env
 server/.env
+server/holo-reject-debug.txt
+server/fixtures/holo-last-response.json
 .superpowers/

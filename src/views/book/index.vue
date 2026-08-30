@@ -346,8 +346,16 @@ export default defineComponent({
       activeId.value = sid;
       mountAroundChapter(sid);
       await nextTick();
+      const root = scrollerRef.value;
       const el = document.getElementById(sid);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!root || !el) return;
+      // 勿用 scrollIntoView：会把章节顶到滚动视口最上沿，被 sticky 工具栏遮住
+      const chrome = root.querySelector('.book-chrome') as HTMLElement | null;
+      const chromeH = chrome?.offsetHeight ?? 88;
+      const gap = 8;
+      const nextTop =
+        root.scrollTop + (el.getBoundingClientRect().top - root.getBoundingClientRect().top) - chromeH - gap;
+      root.scrollTo({ top: Math.max(0, nextTop), behavior: 'smooth' });
     };
 
     const handleVolume = async (v: BookVolume) => {
@@ -611,6 +619,8 @@ export default defineComponent({
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
+  /* 移动端工具栏两行约 96–110px，避免锚点滚到 sticky 栏下 */
+  scroll-padding-top: 120px;
 }
 .toolbar {
   display: flex;
@@ -670,19 +680,28 @@ export default defineComponent({
 .vol-btn {
   border: 1px solid var(--zw-line);
   background: transparent;
-  color: var(--zw-ink);
+  color: color-mix(in srgb, var(--zw-ink) 72%, var(--zw-muted));
   padding: 6px 12px;
   font-family: inherit;
   font-size: 13px;
   letter-spacing: 0.12em;
   cursor: pointer;
   border-radius: 6px;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .vol-btn.active {
   border-color: var(--zw-gold);
+  border-width: 1.5px;
   color: var(--zw-primary);
-  font-weight: 600;
-  background: color-mix(in srgb, var(--zw-paper) 70%, var(--zw-gold));
+  font-weight: 700;
+  background: color-mix(in srgb, var(--zw-gold) 28%, var(--zw-paper));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--zw-gold) 35%, transparent),
+    inset 0 -2px 0 color-mix(in srgb, var(--zw-gold) 75%, transparent);
 }
 .hint-dialog-body {
   font-size: 14px;
@@ -718,7 +737,7 @@ export default defineComponent({
   min-height: 0;
 }
 .chapter {
-  scroll-margin-top: 88px;
+  scroll-margin-top: 120px;
   margin-bottom: 24px;
 }
 .chapter:last-child {

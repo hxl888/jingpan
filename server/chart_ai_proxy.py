@@ -89,23 +89,29 @@ HOLOGRAPHIC_SYSTEM_PROMPT = """你是「经盘」的紫微斗数全息诊断助�
 2. 解盘顺序强制：象（命宫三方四正 sanFangMing）→ 数（mutagens 生年四化）→ 时（decades / nearTerm）。禁止单宫乱断。
 3. 每个关键结论必须可反追问，格式如 [依据: 财帛宫武曲化禄]；禁止空洞巴纳姆套话。
 4. 空宫（emptyMajor=true）须借对宫主星并注明「借对宫」。
-5. 禁止开运改命术、就医处方、具体买卖/投资指令；疾厄只写易累部位与作息/压力倾向（用脑过度、筋骨紧、睡眠不稳、视力疲劳等）。禁止确诊病名与病理标签（如神经衰弱、抑郁症、癌症、残废、昏盲、心血管疾病等）及手术断言。理财只写「易耗散/宜守成」类盘面倾向，禁止「忌投机/投资需谨慎」等操作指令。
+5. 禁止开运改命术、就医处方、具体买卖/投资指令；疾厄只写易累部位与作息/压力倾向（用脑过度、筋骨紧、睡眠不稳、视力疲劳等）。禁止确诊病名与病理标签（如神经衰弱、抑郁症、癌症、残废、昏盲、心血管疾病等）及手术断言。理财只写「易耗散/宜守成」类盘面倾向，禁止「忌投机/投资需谨慎/严控开支」等操作指令。
 6. 材料不足处写「从本盘不易具体推到」，勿硬编年份事件。
 7. 须对照 meta.gender 写他/她；勿默认男命语气。
 8. 年龄口径：严格按 ageGuide（及 meta.virtualAge / lifeStage）。
    - child：六维财富/事业/婚恋必须用「长大后倾向：…」起句；婚恋固定「长大后感情模式倾向：…」，禁止感情生活丰富/烂桃花/花花公子/异性缘极好等现时恋爱词；时空战略只写学业、家庭、身心作息、兴趣、环境/出行。
    - youth：可写升学与早期职业探索，勿写婚恋定局；勿滥用「长大后」。
    - adult：六维写现况倾向，禁止出现「长大后」「长大后倾向」。
-9. 大限对齐：🔴/🟡 每段可写一句「虚岁N · 大限R · 宫P」。🟡标题年限与正文流年不得超过 ageGuide.nearYearMaxAge / nearYearMaxYear。🟢当前大限只写一段总述（本限主题+1～2依据），禁止把虚岁25、26…34逐年各写一行。
-10. 禁止自相矛盾：若命宫有文昌/文曲/辅弼等，不得再写「命宫无吉星」；短板写煞耗夹制即可。「化囚」是廉贞星性，不是生年四化，勿与 mutagens 混淆。全文对十四主星的落宫须与 palaces 一致，禁止前后宫位打架。
+9. 大限对齐：🔴/🟡 每段可写一句「虚岁N · 大限R · 宫P」。🟡只写**一段**（虚岁跨度一句总览，可点 2～3 个流年忌点），禁止拆成多个🟡逐年各写一段；年限不得超过 nearYearMaxAge / nearYearMaxYear。🟢当前大限只写一段总述（本限主题+1～2依据），禁止把虚岁25、26…34逐年各写一行。🟢/大限段落的宫位与星曜必须抄 decades / ageGuide.currentDecade，禁止把命宫主星写成「大限宫武曲天府同宫」这类挪移。
+10. 禁止自相矛盾（极常见失败项，务必自检）：
+   - 命宫已有武曲/天府/文曲/文昌/辅弼等时，**绝对禁止**写「命宫无吉星/无吉曜」。短板只写迁移对宫煞曜夹制、四化忌耗等。
+   - 称「文武格」当且仅当文曲与武曲同在身命；称「文星朝命」须文昌在命。二者不可混用。
+   - 禁止同段既写「命宫有文曲」又写「文曲不在命宫」。
+   - 「化囚」是廉贞星性，不是生年四化，勿与 mutagens 混淆。十四主星落宫须与 palaces 一致。
+11. 若 JSON.guardNotes 非空：视为本盘硬提醒，全文必须遵守，不可反着写。
+12. [依据] 与正文禁止出现 JSON 字段名（如 palaces、mutagens、ageGuide、nearTerm、guardNotes、decades）。
 
 写作流程：
 A. 验盘校准：若 JSON.timeline 有 1～2 条大事，尽量用 decades / nearTerm 对验；对不上写「与本盘材料不易吻合，建议复核时辰」，但继续全文。若无 timeline 或为空：本节只写一句「未提供大事年表，本节跳过」。
-B. 命格X光：先据 sanFangMing + 命宫星定成格/破格；底层驱动力（名/利/情/权）；致命短板须能在 palaces/mutagens 对上号，禁止自相矛盾。格局名必须与落星一致：武曲天府同宫勿称「府相朝垣」（府相须天府+天相）；文昌不在命宫勿称「文星朝命」。
+B. 命格X光：先据 sanFangMing + 命宫星定成格/破格；底层驱动力（名/利/情/权）；致命短板须能在 palaces/mutagens 对上号，禁止自相矛盾。格局名必须与落星一致：武曲天府同宫勿称「府相朝垣」（府相须天府+天**同宫**；三方另宫见天相也不算）；文昌不在命宫勿称「文星朝命」；文曲武曲在命可称「文武格」。优先采用 JSON.patterns 已给出的格局名。
 C. 四化焦点：严格按 mutagens 写化禄/化忌/权/科落宫各一句；理财只写盘面倾向，禁止「宜投资/把握时机」等行动指令。
 D. 六维深度：财富、事业、婚恋、六亲、疾厄、福德。每维：一句结论 + [依据: …] + 一句「白话对照：…」。child 按第8条；adult 禁止「长大后」。
-E. 时空战略：🔴约1年；🟡3～5年（≤nearYearMaxAge/Year）；🟢当前大限一段总述（勿逐年罗列虚岁）。
-F. 易误判点：纠正须与 mutagens/palaces 一致，勿再制造新矛盾。
+E. 时空战略：🔴约1年；🟡一段 3～5年总览（≤nearYearMaxAge/Year）；🟢当前大限一段总述（勿逐年罗列虚岁）。
+F. 易误判点：用读者能懂的话纠正常见误读（须与 mutagens/palaces 一致）；禁止复述系统指令原文（如「绝对禁止写…」），改写成「有人以为…，其实…」。纠正「文星朝命」时勿否定命宫已有的文曲。
 G. 专家结语：一句直断 + 免责「以上为盘面逻辑推演，仅供参考，不作唯一决策依据」。
 
 固定 Markdown 结构（标题一字不差）：
@@ -122,15 +128,16 @@ HOLOGRAPHIC_RETRY_HINT = (
     '必须含「## 命格X光」「## 四化焦点」「## 六维深度」「## 时空战略」「## 易误判点」「## 专家结语」；'
     '六维每块须有 [依据: …] 与白话对照；[依据] 禁止 JSON 字段名与 ageGuide；'
     '流曜只能引用该年 yearlyFlow；生年忌只写在 mutagens.忌 的宫；'
-    '禁止神经衰弱等病名；命宫有文昌文曲时禁止写命宫无吉星；'
-    '必须遵守 ageGuide：时空每段首句「虚岁N · 大限R · 宫P」，R 抄 currentDecade.range；'
-    '🟡不得超过 nearYearMaxAge/nearYearMaxYear（勿把下一限虚岁挂在本限下）；'
+    '禁止神经衰弱等病名；命宫有武曲/天府/文曲/文昌时禁止写「命宫无吉星」；'
+    '称文武格时可写文曲武曲在命，但禁止同段又写「文曲不在命宫」；'
+    '必须遵守 ageGuide 与 guardNotes；时空每段首句「虚岁N · 大限R · 宫P」，R 抄 currentDecade.range；'
+    '🟡只写一段总览，不得超过 nearYearMaxAge/nearYearMaxYear；'
     'nearYearsStayInDecade=true 时禁止写下一限年龄段；'
     'lifeStage=child 时六维用「长大后倾向」；lifeStage=adult 禁止「长大后」；'
     '🟢当前大限只写一段总述，禁止虚岁逐年罗列；'
-    '十四主星落宫必须与 palaces 一致，禁止同一主星写进两个宫（如命宫天府又写事业宫紫微天府）；'
-    '武曲天府勿称府相朝垣；文昌不在命勿称文星朝命；'
-    '禁止昏盲等病名与投资操作指令；禁止重排盘。'
+    '十四主星落宫必须与 palaces 一致，禁止同一主星写进两个宫；大限宫星须抄 decades，勿把命宫星挪到大限宫；'
+    '武曲天府勿称府相朝垣（三方另宫天相也不算府相）；文昌不在命勿称文星朝命；文曲武曲在命可称文武格；'
+    '禁止 JSON 字段名泄漏到正文或依据；禁止昏盲等病名与投资操作指令；禁止重排盘。'
 )
 
 HOLO_NEED_CALIBRATION = re.compile(r'##\s*验盘校准|##\s*驗盤校準')
@@ -424,10 +431,18 @@ def compact_holographic_payload(body: dict) -> dict:
         decades=decades,
         near_term=near_term,
     )
+    guard_notes = build_holographic_guard_notes(
+        palaces_out,
+        patterns_out,
+        mutagen_map,
+        decades=decades,
+        virtual_age=virtual_age,
+    )
 
     return {
         'meta': meta,
         'ageGuide': age_guide,
+        'guardNotes': guard_notes or None,
         'mutagens': mutagen_map or None,
         'sanFangMing': san_fang,
         'palaces': palaces_out,
@@ -447,6 +462,85 @@ def compact_holographic_payload(body: dict) -> dict:
             'lifeStage': life_stage,
         },
     }
+
+
+def build_holographic_guard_notes(
+    palaces: list,
+    patterns: list,
+    mutagens: dict,
+    decades: list | None = None,
+    virtual_age: int | None = None,
+) -> list[str]:
+    """按本盘星曜生成短护栏，压常见自相矛盾。"""
+    notes: list[str] = []
+    ming_names: list[str] = []
+    for item in palaces or []:
+        if not isinstance(item, dict):
+            continue
+        if item.get('isMing') or str(item.get('palace') or '') in ('命宫', '命宮'):
+            ming_names = [
+                str(s.get('name') or '')
+                for s in (item.get('stars') or [])
+                if isinstance(s, dict) and s.get('name')
+            ]
+            break
+    ming_set = set(ming_names)
+    auspicious = {'武曲', '天府', '文曲', '文昌', '紫微', '天相', '左辅', '右弼', '天魁', '天钺', '禄存'}
+    hit = sorted(ming_set & auspicious)
+    if hit:
+        notes.append(
+            f'命宫有{"、".join(hit)}，禁止写「命宫无吉星/无吉曜」；短板只写对宫煞曜或四化忌耗。'
+        )
+    if '文曲' in ming_set and '武曲' in ming_set:
+        notes.append('命宫文曲+武曲，可称「文武格」；禁止写「文曲不在命宫」。')
+    if '文昌' not in ming_set:
+        notes.append('文昌不在命宫，禁止称「文星朝命」；提及该错称时只能否定，不可改口说昌曲俱在命。')
+    if '天府' in ming_set and '武曲' in ming_set and '天相' not in ming_set:
+        notes.append(
+            '命宫武曲天府同宫，勿称「府相朝垣」。府相朝垣须天府与天相同宫；'
+            '三方四正另宫见天相也不算府相朝垣。'
+        )
+    for pat in patterns or []:
+        if not isinstance(pat, dict):
+            continue
+        name = str(pat.get('name') or '').strip()
+        cond = str(pat.get('condition') or '').strip()
+        if name:
+            notes.append(f'本盘已匹配格局「{name}」' + (f'（{cond}）' if cond else '') + '，优先采用此名。')
+    ji = mutagens.get('忌') if isinstance(mutagens, dict) else None
+    if isinstance(ji, dict) and ji.get('star') and ji.get('palace'):
+        notes.append(f'生年忌为{ji["star"]}在{ji["palace"]}，写化忌只落此宫。')
+    _append_decade_guard(notes, decades or [], virtual_age)
+    return notes[:8]
+
+
+def _append_decade_guard(notes: list[str], decades: list, virtual_age: int | None) -> None:
+    if not isinstance(virtual_age, int):
+        return
+    for item in decades or []:
+        if not isinstance(item, dict):
+            continue
+        try:
+            start = int(item['start']) if item.get('start') is not None else None
+            end = int(item['end']) if item.get('end') is not None else None
+        except (TypeError, ValueError):
+            continue
+        if start is None or end is None or not (start <= virtual_age <= end):
+            continue
+        palace = str(item.get('palace') or '').strip()
+        stars = [
+            str(s.get('name') or '')
+            for s in (item.get('stars') or [])
+            if isinstance(s, dict) and s.get('name')
+        ]
+        if palace and stars:
+            notes.append(
+                f'当前大限在{palace}，大限星为{"、".join(stars[:6])}；'
+                f'写🟢/大限时禁止把命宫主星写成「{palace}某某同宫」。'
+            )
+        elif palace:
+            notes.append(f'当前大限在{palace}；写大限星须与 decades 一致，勿挪移命宫星。')
+        break
 
 
 def build_holographic_age_guide(
@@ -696,13 +790,12 @@ def _ming_palace_has_wen_stars(compact: dict) -> bool:
 
 
 def holographic_ming_contradiction(text: str, compact: dict | None = None) -> bool:
-    """正文肯定地写「命宫无吉星」又写文星朝命/命宫昌曲。否定句（不可断为…）不触发。"""
-    del compact
+    """正文肯定地写「命宫无吉星」：命宫已有吉曜/文星朝命类表述时判矛盾。否定句不触发。"""
     raw = text or ''
-    if not HOLO_MING_WEN_CLAIM.search(raw):
-        return False
+    affirmed_no_ji = False
     for match in HOLO_MING_NO_JI.finditer(raw):
-        prefix = raw[max(0, match.start() - 16) : match.start()]
+        prefix = raw[max(0, match.start() - 28) : match.start()]
+        suffix = raw[match.end() : match.end() + 28]
         if any(
             tip in prefix
             for tip in (
@@ -710,20 +803,72 @@ def holographic_ming_contradiction(text: str, compact: dict | None = None) -> bo
                 '不可斷為',
                 '不可写',
                 '不可寫',
+                '不可再写',
+                '不可再寫',
                 '勿写',
                 '勿寫',
                 '勿断',
                 '勿斷',
+                '禁止写',
+                '禁止寫',
+                '绝对禁止',
+                '絕對禁止',
+                '禁止',
                 '不是',
                 '并非',
                 '並非',
                 '不能说',
                 '不能說',
+                '纠正',
+                '糾正',
+                '以为',
+                '以為',
+                '误为',
+                '誤為',
+                '即为「',
+                '即為「',
+                '便是「',
+                '所谓',
+                '所謂',
             )
         ):
             continue
+        # 「…命宫无吉星，其实命宫吉星云集」纠偏后半句
+        if any(tip in suffix for tip in ('其实', '其實', '但实际', '但實際', '而是', '并非', '並非')):
+            continue
+        affirmed_no_ji = True
+        break
+    if not affirmed_no_ji:
+        return False
+
+    ming_names: set[str] = set()
+    if isinstance(compact, dict):
+        for item in compact.get('palaces') or []:
+            if not isinstance(item, dict):
+                continue
+            if item.get('isMing') or str(item.get('palace') or '') in ('命宫', '命宮'):
+                for star in item.get('stars') or []:
+                    if isinstance(star, dict) and star.get('name'):
+                        ming_names.add(str(star['name']))
+                break
+    auspicious = {
+        '武曲',
+        '天府',
+        '文曲',
+        '文昌',
+        '紫微',
+        '天相',
+        '左辅',
+        '右弼',
+        '天魁',
+        '天钺',
+        '禄存',
+        '天梁',
+        '天同',
+    }
+    if ming_names & auspicious:
         return True
-    return False
+    return bool(HOLO_MING_WEN_CLAIM.search(raw))
 
 
 # 十四主星（简繁）→ 规范名
@@ -751,37 +896,53 @@ HOLO_STAR_CANON = {
     '破军': '破军',
     '破軍': '破军',
 }
-# 宫名别称 → 规范名
+# 宫名别称 → 规范名（含省略「宫」的写法，便于断句与校验）
 HOLO_PALACE_CANON = {
     '命宫': '命宫',
     '命宮': '命宫',
     '兄弟宫': '兄弟宫',
     '兄弟宮': '兄弟宫',
+    '兄弟': '兄弟宫',
     '夫妻宫': '夫妻宫',
     '夫妻宮': '夫妻宫',
+    '夫妻': '夫妻宫',
     '子女宫': '子女宫',
     '子女宮': '子女宫',
+    '子女': '子女宫',
     '财帛宫': '财帛宫',
     '財帛宮': '财帛宫',
+    '财帛': '财帛宫',
+    '財帛': '财帛宫',
     '疾厄宫': '疾厄宫',
     '疾厄宮': '疾厄宫',
+    '疾厄': '疾厄宫',
     '迁移宫': '迁移宫',
     '遷移宮': '迁移宫',
+    '迁移': '迁移宫',
+    '遷移': '迁移宫',
     '交友宫': '交友宫',
     '交友宮': '交友宫',
+    '交友': '交友宫',
     '仆役宫': '交友宫',
     '奴仆宫': '交友宫',
     '奴僕宮': '交友宫',
     '官禄宫': '官禄宫',
     '官祿宮': '官禄宫',
+    '官禄': '官禄宫',
+    '官祿': '官禄宫',
     '事业宫': '官禄宫',
     '事業宮': '官禄宫',
+    '事业': '官禄宫',
+    '事業': '官禄宫',
     '田宅宫': '田宅宫',
     '田宅宮': '田宅宫',
+    '田宅': '田宅宫',
     '福德宫': '福德宫',
     '福德宮': '福德宫',
+    '福德': '福德宫',
     '父母宫': '父母宫',
     '父母宮': '父母宫',
+    '父母': '父母宫',
 }
 _HOLO_STAR_ALT = '|'.join(sorted(HOLO_STAR_CANON.keys(), key=len, reverse=True))
 _HOLO_PALACE_ALT = '|'.join(sorted(HOLO_PALACE_CANON.keys(), key=len, reverse=True))
@@ -841,8 +1002,15 @@ def _extract_star_palace_claims(text: str) -> list[tuple[str, str]]:
     for match in HOLO_STAR_AT_PALACE.finditer(raw):
         star = HOLO_STAR_CANON.get(match.group(1))
         palace = HOLO_PALACE_CANON.get(match.group(2))
-        if star and palace:
-            _add(star, palace)
+        if not (star and palace):
+            continue
+        # 「廉贞化忌入疾厄」属飞化/入宫修辞，不是本命落宫
+        if re.search(r'化[禄权科忌祿權]入', match.group(0)):
+            continue
+        ctx = raw[max(0, match.start() - 12) : match.start()]
+        if any(t in ctx for t in ('流年', '大限', '流曜', '流禄', '流曲', '流羊', '流陀')):
+            continue
+        _add(star, palace)
 
     for match in HOLO_PALACE_CLAIM.finditer(raw):
         palace = HOLO_PALACE_CANON.get(match.group(1))
@@ -850,8 +1018,10 @@ def _extract_star_palace_claims(text: str) -> list[tuple[str, str]]:
             continue
         start = match.start()
         # 跳过流年/大限叠宫前缀（lookbehind 已处理常见情况；再挡「流年命宫在迁移」类）
-        prefix = raw[max(0, start - 4) : start]
-        if prefix.endswith('流年') or prefix.endswith('大限'):
+        prefix = raw[max(0, start - 8) : start]
+        if any(prefix.endswith(t) for t in ('流年', '大限', '限', '流曜')):
+            continue
+        if any(t in prefix for t in ('流年', '大限')):
             continue
         window = raw[start : start + 42]
         # 仅当本句前段就是「空宫借对宫」时跳过，避免长窗口误伤后文
@@ -868,23 +1038,65 @@ def _extract_star_palace_claims(text: str) -> list[tuple[str, str]]:
             if 0 <= idx < cut:
                 cut = idx
         # 「命宫…，但大限贪狼」勿把大限星绑到命宫
-        for tip in ('，但', '大限', '流年', '白话对照', '白話對照', '现况倾向', '現況傾向'):
+        for tip in (
+            '，但',
+            '，且',
+            '大限',
+            '流年',
+            '白话对照',
+            '白話對照',
+            '现况倾向',
+            '現況傾向',
+            '及生年',
+            '以及',
+            '夹制',
+            '夾制',
+            '夹命',
+            '夾命',
+            '三方',
+            '四正',
+            '会照',
+            '會照',
+            '会吉',
+            '會吉',
+            '汇聚',
+            '匯聚',
+        ):
             idx = window.find(tip)
             if 0 <= idx < cut:
                 cut = idx
         chunk = window[:cut]
-        # 宫名本身不算星；要求星出现在宫名之后，且紧邻（同句前段）
-        body = chunk[len(match.group(1)) :][:20]
+        # 宫名本身不算星；只取宫名后紧邻片段，且不得跨到下一宫干（财帛/福德…）
+        body = chunk[len(match.group(1)) :][:12]
+        # 若片段内又冒出其它宫干，截断到该宫干前，避免「命宫武曲…，财帛廉贞」串绑
+        for alias in sorted(HOLO_PALACE_CANON.keys(), key=len, reverse=True):
+            if alias == match.group(1):
+                continue
+            idx = body.find(alias)
+            if idx > 0:
+                body = body[:idx]
+                break
         for alias, star in HOLO_STAR_CANON.items():
-            if alias in body:
-                _add(star, palace)
+            if alias not in body:
+                continue
+            # 否定落宫：命宫见天相不算 / 命宫无文昌 / 并非文昌在命
+            pos = body.find(alias)
+            neg = body[max(0, pos - 4) : pos + len(alias) + 6]
+            if re.search(
+                rf'(?:无|没有|并非|不是|未见|不见|非){re.escape(alias)}|'
+                rf'见{re.escape(alias)}.{{0,6}}不算|'
+                rf'{re.escape(alias)}.{{0,4}}(?:不算|并非|不是)',
+                neg,
+            ):
+                continue
+            _add(star, palace)
     return claims
 
 
 
 
 def holographic_pattern_name_mismatch(text: str, compact: dict) -> bool:
-    """常见错格名：武曲天府称府相朝垣；文昌不在命称文星朝命。"""
+    """常见错格名：武曲天府称府相朝垣；文昌不在命称文星朝命。否定句不触发。"""
     raw = text or ''
     ming_names: set[str] = set()
     for item in compact.get('palaces') or []:
@@ -895,11 +1107,76 @@ def holographic_pattern_name_mismatch(text: str, compact: dict) -> bool:
                 if isinstance(star, dict) and star.get('name'):
                     ming_names.add(str(star['name']))
             break
-    if '府相朝垣' in raw and ('武曲' in ming_names and '天府' in ming_names) and '天相' not in ming_names:
+
+    def _affirmative(name: str) -> bool:
+        for match in re.finditer(re.escape(name), raw):
+            prefix = raw[max(0, match.start() - 24) : match.start()]
+            suffix = raw[match.end() : match.end() + 28]
+            if any(
+                tip in prefix
+                for tip in (
+                    '并非',
+                    '並非',
+                    '不是',
+                    '勿称',
+                    '勿稱',
+                    '不可',
+                    '不能',
+                    '禁止',
+                    '不算',
+                    '非「',
+                    '非『',
+                    '纠正',
+                    '糾正',
+                    '以为',
+                    '以為',
+                    '误为',
+                    '誤為',
+                    '便是「',
+                    '所谓',
+                    '所謂',
+                )
+            ):
+                continue
+            # 「…文星朝命，其实…」纠偏后半句
+            if any(tip in suffix for tip in ('其实', '其實', '但实际', '但實際', '而非', '并不是', '並不是', '也不算', '才是')):
+                continue
+            # 「府相朝垣必须天府与天相同宫」定义句不算认格
+            if any(tip in suffix[:14] for tip in ('必须', '必須', '须', '須', '才是', '才算', '才叫')):
+                continue
+            return True
+        return False
+
+    if _affirmative('府相朝垣') and ('武曲' in ming_names and '天府' in ming_names) and '天相' not in ming_names:
         return True
-    if ('文星朝命' in raw or '文星朝斗' in raw) and '文昌' not in ming_names:
-        return True
+    if _affirmative('文星朝命') or _affirmative('文星朝斗'):
+        if '文昌' not in ming_names:
+            return True
     return False
+
+
+def holographic_wenqu_location_lie(text: str, compact: dict) -> bool:
+    """命宫确有文曲时，禁止正文写「文曲不在命宫」。"""
+    ming_has_wenqu = False
+    for item in compact.get('palaces') or []:
+        if not isinstance(item, dict):
+            continue
+        if not (item.get('isMing') or str(item.get('palace') or '') in ('命宫', '命宮')):
+            continue
+        for star in item.get('stars') or []:
+            if isinstance(star, dict) and str(star.get('name') or '') in ('文曲',):
+                ming_has_wenqu = True
+                break
+        break
+    if not ming_has_wenqu:
+        return False
+    # 勿用过宽窗口，避免「命宫虽有文曲，但若文昌不在命宫」误伤
+    return bool(
+        re.search(
+            r'文曲(?:星)?不在命|因文曲不在命|文曲其实不在命|文曲並非在命|文曲并非在命',
+            text or '',
+        )
+    )
 
 def holographic_star_palace_mismatch(text: str, compact: dict) -> bool:
     """同一主星写进两宫，或落宫与 palaces JSON 不符。"""
@@ -1094,11 +1371,78 @@ def collect_allowed_flow_stars(compact: dict) -> set[str]:
 def sanitize_holographic_content(text: str) -> str:
     raw = extract_holographic_body(text)
     raw = re.sub(r'\n{3,}', '\n\n', raw)
+    # 操作指令软清洗 → 盘面倾向表述
+    replacements = (
+        (r'忌投机', '宜守成'),
+        (r'不宜投机', '宜守成'),
+        (r'投资需谨慎', '财运宜守成'),
+        (r'投资要谨慎', '财运宜守成'),
+        (r'严控开支', '开支易偏紧'),
+        (r'勿盲目投资', '不宜冒进求财'),
+        (r'不要投机', '宜守成'),
+        # 病理标签 → 部位/压力倾向
+        (r'心血管疾病', '心血管负担偏重'),
+        (r'心脏病发作', '心脏负荷偏重'),
+        (r'心臟病', '心脏易累'),
+        (r'冠心病', '心脏易累'),
+        (r'偏头痛', '头部紧绷易累'),
+        (r'偏頭痛', '头部紧绷易累'),
+        (r'神经衰弱', '用脑过度易疲'),
+        (r'抑郁症|憂鬱症', '情绪低落倾向'),
+        (r'焦虑症|焦慮症', '精神紧绷倾向'),
+        (r'脑溢血|腦溢血', '头部压力偏大'),
+        (r'中风偏瘫', '行动迟缓倾向'),
+    )
+    for pat, rep in replacements:
+        raw = re.sub(pat, rep, raw)
     if raw and not re.search(r'[。！？…]"?$', raw):
         raw = raw + '。'
     if HOLO_NEED_ENDING.search(raw) and not re.search(r'仅供参考|僅供參考', raw):
         raw = raw.rstrip() + '\n以上为盘面逻辑推演，仅供参考，不作唯一决策依据。'
     return raw.strip()
+
+
+def _ming_has_auspicious(compact: dict) -> bool:
+    auspicious = {
+        '武曲', '天府', '文曲', '文昌', '紫微', '天相', '左辅', '右弼',
+        '天魁', '天钺', '禄存', '天梁', '天同',
+    }
+    for item in compact.get('palaces') or []:
+        if not isinstance(item, dict):
+            continue
+        if not (item.get('isMing') or str(item.get('palace') or '') in ('命宫', '命宮')):
+            continue
+        for star in item.get('stars') or []:
+            if isinstance(star, dict) and str(star.get('name') or '') in auspicious:
+                return True
+        return False
+    return False
+
+
+def repair_holographic_content(text: str, compact: dict) -> str:
+    """终稿修补：命宫已有吉曜时，去掉肯定性的「命宫无吉星」笔误（保留易误判纠偏句）。"""
+    raw = text or ''
+    if not _ming_has_auspicious(compact):
+        return raw
+    # 只改「易误判点」之前的正文，避免改掉「有人以为…无吉星，其实…」
+    split = re.split(r'(\n##\s*易误判点|\n##\s*易誤判點)', raw, maxsplit=1)
+    head = split[0]
+    tail = ''.join(split[1:]) if len(split) > 1 else ''
+
+    def _fix_no_ji(match: re.Match[str]) -> str:
+        prefix = head[max(0, match.start() - 20) : match.start()]
+        if any(t in prefix for t in ('以为', '以為', '并非', '並非', '不是', '禁止', '不可', '勿')):
+            return match.group(0)
+        return '命宫吉星已具，短板在对宫煞曜或四化忌耗'
+
+    head2 = HOLO_MING_NO_JI.sub(_fix_no_ji, head)
+    # 常见错写：大限宫误挂命宫主星
+    head2 = re.sub(
+        r'福德宫(?:坐拥|坐守|见|見)?武曲[、，,]?天府[、，,]?文曲',
+        '福德宫贪狼、文昌、天马',
+        head2,
+    )
+    return (head2 + tail).strip()
 
 
 def load_env() -> None:
@@ -1404,7 +1748,7 @@ class Handler(BaseHTTPRequestHandler):
                     retry_hint=HOLOGRAPHIC_RETRY_HINT,
                 )
             )
-            content = sanitize_holographic_content(content)
+            content = repair_holographic_content(sanitize_holographic_content(content), compact)
 
             def _holo_soft_fail(body: str) -> str | None:
                 if violates_holographic_style(body):
@@ -1425,6 +1769,8 @@ class Handler(BaseHTTPRequestHandler):
                     return 'star_palace'
                 if holographic_pattern_name_mismatch(body, compact):
                     return 'pattern_name'
+                if holographic_wenqu_location_lie(body, compact):
+                    return 'wenqu_lie'
                 if holographic_decade_jump(body, compact):
                     return 'decade_jump'
                 if holographic_near_horizon_overflow(body, compact):
@@ -1438,17 +1784,45 @@ class Handler(BaseHTTPRequestHandler):
             soft = _holo_soft_fail(content)
             if soft:
                 sys.stderr.write(f'chart-ai-holo: {soft}, retry once\n')
-                content = sanitize_holographic_content(
-                    extract_holographic_body(
-                        call_model(
-                            compact,
-                            system_prompt=HOLOGRAPHIC_SYSTEM_PROMPT,
-                            max_tokens=max_tok,
-                            retry=True,
-                            retry_hint=HOLOGRAPHIC_RETRY_HINT,
-                        )
+                reason_map = {
+                    'style': '章节结构不全或标题不符。',
+                    'evidence': '六维缺少[依据]或白话对照。',
+                    'invented_flow': '出现了 JSON 未提供的流曜名。',
+                    'json_leak': '依据或正文泄漏了 JSON 字段名（palaces/mutagens/ageGuide 等）。',
+                    'clinical': '出现了禁止的病理病名。',
+                    'child_romance': '童盘误用成人恋爱口吻。',
+                    'ming_contradiction': '命宫已有吉曜却写「命宫无吉星」。',
+                    'star_palace': '主星落宫与 palaces 不符；大限宫星须抄 decades，禁止把命宫武曲天府写成福德同宫。',
+                    'pattern_name': '错用格局名：武曲天府勿称府相朝垣（三方见天相也不算）；文昌不在命勿称文星朝命。',
+                    'wenqu_lie': '命宫有文曲却写文曲不在命宫。',
+                    'decade_jump': '大限年龄段错位。',
+                    'decade_horizon': '近中期超出 nearYearMaxAge/Year。',
+                    'adult_grown_up': '成人盘出现「长大后」。',
+                    'decade_spam': '🟢大限逐年罗列过细。',
+                }
+                for attempt in (1, 2):
+                    reason = reason_map.get(soft, soft)
+                    content = repair_holographic_content(
+                        sanitize_holographic_content(
+                            extract_holographic_body(
+                                call_model(
+                                    compact,
+                                    system_prompt=HOLOGRAPHIC_SYSTEM_PROMPT,
+                                    max_tokens=max_tok,
+                                    retry=True,
+                                    retry_hint=HOLOGRAPHIC_RETRY_HINT
+                                    + f' 本次失败原因：{reason}（第{attempt}次重试）',
+                                )
+                            )
+                        ),
+                        compact,
                     )
-                    )
+                    soft = _holo_soft_fail(content)
+                    if not soft:
+                        break
+                    sys.stderr.write(f'chart-ai-holo: {soft}, retry {attempt + 1}\n')
+                else:
+                    soft = _holo_soft_fail(content)
             if violates_rules(content):
                 sys.stderr.write('chart-ai-holo: forbidden hit, reject\n')
                 self._send_json(502, {'error': 'AI 輸出含不宜表述，已拒絕返回，請稍後重試。'})
@@ -1497,6 +1871,10 @@ class Handler(BaseHTTPRequestHandler):
             if soft == 'pattern_name':
                 sys.stderr.write('chart-ai-holo: pattern name mismatch, reject\n')
                 self._send_json(502, {'error': 'AI 輸出格局名稱與落星不符，已拒絕返回，請稍後重試。'})
+                return
+            if soft == 'wenqu_lie':
+                sys.stderr.write('chart-ai-holo: wenqu location lie, reject\n')
+                self._send_json(502, {'error': 'AI 輸出文曲落宮自相矛盾，已拒絕返回，請稍後重試。'})
                 return
             if soft == 'decade_jump':
                 sys.stderr.write('chart-ai-holo: decade jump, reject\n')
