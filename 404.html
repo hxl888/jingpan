@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/jingpan/assets/decor/yin-yang.svg" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <title>經盤 · 古籍對照 · 不編吉凶</title>
+    <meta
+      name="description"
+      content="經盤是紫微斗數與易經研習站：排盤、古籍原文、易經六十四卦、搖卦、六壬、納音起名與羅盤黃曆工具。只做原文對照與本地推算，不編吉凶斷語，不作決策依據。"
+    />
+    <meta
+      name="keywords"
+      content="經盤,紫微斗數,易經,六十四卦,搖卦,六壬,納音起名,羅盤,黃曆,古籍對照,紫微斗數全書"
+    />
+    <meta name="author" content="經盤" />
+    <meta name="robots" content="index,follow,max-image-preview:large" />
+    <meta name="applicable-device" content="pc,mobile" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <link rel="canonical" href="https://hxl888.github.io/jingpan/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="經盤" />
+    <meta property="og:title" content="經盤 · 古籍對照 · 不編吉凶" />
+    <meta
+      property="og:description"
+      content="經盤是紫微斗數與易經研習站：排盤、古籍原文、易經六十四卦、搖卦、六壬、納音起名與羅盤黃曆工具。只做原文對照與本地推算，不編吉凶斷語，不作決策依據。"
+    />
+    <meta property="og:url" content="https://hxl888.github.io/jingpan/" />
+    <meta property="og:image" content="https://hxl888.github.io/jingpan/assets/decor/luopan-plate.png" />
+    <meta property="og:locale" content="zh_TW" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="經盤 · 古籍對照 · 不編吉凶" />
+    <meta
+      name="twitter:description"
+      content="經盤是紫微斗數與易經研習站：排盤、古籍原文、易經六十四卦、搖卦、六壬、納音起名與羅盤黃曆工具。只做原文對照與本地推算，不編吉凶斷語，不作決策依據。"
+    />
+    <meta name="twitter:image" content="https://hxl888.github.io/jingpan/assets/decor/luopan-plate.png" />
+    <meta name="theme-color" content="#4a1a14" />
+    <!-- 首屏防闪：在 CSS/JS 前按本地主题上色（默认寺观朱红，避免露出米色纸底） -->
+    <script>
+      (function () {
+        var KEY = 'zw-visual-theme';
+        var BG = { temple: '#4a1a14', cosmos: '#05070f', ink: '#f3efe4' };
+        try {
+          var raw = localStorage.getItem(KEY);
+          var t =
+            raw === 'temple' || raw === 'cosmos' || raw === 'ink'
+              ? raw
+              : raw === 'nightsky'
+                ? 'cosmos'
+                : raw === 'xuanpaper'
+                  ? 'ink'
+                  : 'temple';
+          var root = document.documentElement;
+          root.classList.add('theme-' + t);
+          if (t === 'ink') {
+            root.classList.add('theme-xuanpaper');
+          } else {
+            root.classList.add('dark', 'theme-nightsky');
+          }
+          root.style.backgroundColor = BG[t];
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', BG[t]);
+          // 尽早预加载当前主题标题 WebP（不等 Vue 挂载）
+          var base = /\/jingpan(\/|$)/.test(location.pathname) ? '/jingpan/' : '/';
+          var brand =
+            t === 'cosmos'
+              ? 'assets/decor/cosmos-brand-gold.webp'
+              : t === 'ink'
+                ? 'assets/decor/ink-brand.webp'
+                : 'assets/decor/temple-brand-gold.webp';
+          var link = document.createElement('link');
+          link.rel = 'preload';
+          link.as = 'image';
+          link.type = 'image/webp';
+          link.href = base + brand;
+          document.head.appendChild(link);
+        } catch (e) {
+          document.documentElement.classList.add('theme-temple', 'dark', 'theme-nightsky');
+          document.documentElement.style.backgroundColor = BG.temple;
+        }
+      })();
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "經盤",
+        "alternateName": "Jingpan",
+        "url": "https://hxl888.github.io/jingpan/",
+        "description": "經盤是紫微斗數與易經研習站：排盤、古籍原文、易經六十四卦、搖卦、六壬、納音起名與羅盤黃曆工具。只做原文對照與本地推算，不編吉凶斷語，不作決策依據。",
+        "inLanguage": ["zh-Hant", "zh-Hans"],
+        "publisher": {
+          "@type": "Organization",
+          "name": "經盤",
+          "url": "https://hxl888.github.io/jingpan/"
+        }
+      }
+    </script>
+    <script type="module" crossorigin src="/jingpan/assets/index-2W8DjBNm.js"></script>
+    <link rel="stylesheet" crossorigin href="/jingpan/assets/index-CTsYF_xH.css">
+  </head>
+  <body>
+    <div id="app"></div>
+    <!-- 无 JS 时仍可供爬虫读取的正文与站内入口（SPA 首屏补充） -->
+    <noscript>
+      <main id="seo-fallback">
+        <h1>經盤 · 古籍對照 · 不編吉凶</h1>
+        <p>
+          經盤是紫微斗數與易經研習站：排盤、古籍原文、易經六十四卦、搖卦、六壬、納音起名與羅盤黃曆工具。只做原文對照與本地推算，不編吉凶斷語，不作決策依據。請啟用 JavaScript 以使用完整功能。
+        </p>
+        <nav aria-label="站內導航">
+          <ul>
+            <li><a href="chart">紫微排盤</a></li>
+            <li><a href="book">古籍原文</a></li>
+            <li><a href="yijing">易經六十四卦</a></li>
+            <li><a href="star-dict">諸星問答論</a></li>
+            <li><a href="pattern-dict">格局歌訣</a></li>
+            <li><a href="yaogua">搖卦</a></li>
+            <li><a href="luopan">羅盤</a></li>
+            <li><a href="almanac">老黃曆</a></li>
+            <li><a href="naming">納音起名</a></li>
+            <li><a href="liuren">六壬法</a></li>
+            <li><a href="about">關於與來源</a></li>
+          </ul>
+        </nav>
+      </main>
+    </noscript>
+  </body>
+</html>

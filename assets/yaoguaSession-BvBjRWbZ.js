@@ -1,0 +1,1 @@
+import{aX as u}from"./index-2W8DjBNm.js";const t=u("yaoguaSession",()=>{let o=!1;function a(){o=!0}function r(){o=!1}function e(){return o}return{markFromYaogua:a,clearFromYaogua:r,isFromYaogua:e}});export{t as u};

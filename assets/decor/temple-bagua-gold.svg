@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="none">
+  <!-- 暗金罗盘水印：多层环 + 八卦，压在朱红底上可辨 -->
+  <g stroke="#2a100c" stroke-opacity="0.72">
+    <circle cx="200" cy="200" r="196" stroke-width="1.6"/>
+    <circle cx="200" cy="200" r="188" stroke-width="0.9"/>
+    <circle cx="200" cy="200" r="176" stroke-width="1.2" stroke-dasharray="1.4 3.2"/>
+    <circle cx="200" cy="200" r="148" stroke-width="0.8"/>
+    <circle cx="200" cy="200" r="128" stroke-width="1"/>
+    <circle cx="200" cy="200" r="108" stroke-width="0.9"/>
+    <circle cx="200" cy="200" r="72" stroke-width="1.1"/>
+    <circle cx="200" cy="200" r="58" stroke-width="0.7" stroke-dasharray="1.2 2.8"/>
+  </g>
+  <g stroke="#3d1a14" stroke-opacity="0.55" stroke-width="0.7">
+    <path d="M200 8 L200 392 M8 200 L392 200"/>
+    <path d="M58 58 L342 342 M342 58 L58 342"/>
+  </g>
+  <g transform="translate(200 200)" fill="#24100c" fill-opacity="0.8">
+    <!-- 乾 N -->
+    <g transform="rotate(0) translate(0 -138)">
+      <rect x="-13" y="-9" width="26" height="3.5" rx="0.4"/>
+      <rect x="-13" y="-1.5" width="26" height="3.5" rx="0.4"/>
+      <rect x="-13" y="6" width="26" height="3.5" rx="0.4"/>
+    </g>
+    <!-- 巽 NE -->
+    <g transform="rotate(45) translate(0 -138)">
+      <rect x="-13" y="-9" width="11" height="3.5" rx="0.4"/><rect x="2" y="-9" width="11" height="3.5" rx="0.4"/>
+      <rect x="-13" y="-1.5" width="26" height="3.5" rx="0.4"/>
+      <rect x="-13" y="6" width="26" height="3.5" rx="0.4"/>
+    </g>
+    <!-- 离 E -->
+    <g transform="rotate(90) translate(0 -138)">
+      <rect x="-13" y="-9" width="26" height="3.5" rx="0.4"/>
+      <rect x="-13" y="-1.5" width="11" height="3.5" rx="0.4"/><rect x="2" y="-1.5" width="11" height="3.5" rx="0.4"/>
+      <rect x="-13" y="6" width="26" height="3.5" rx="0.4"/>
+    </g>
+    <!-- 坤 SE -->
+    <g transform="rotate(135) translate(0 -138)">
+      <rect x="-13" y="-9" width="11" height="3.5" rx="0.4"/><rect x="2" y="-9" width="11" height="3.5" rx="0.4"/>
+      <rect x="-13" y="-1.5" width="11" height="3.5" rx="0.4"/><rect x="2" y="-1.5" width="11" height="3.5" rx="0.4"/>
+      <rect x="-13" y="6" width="11" height="3.5" rx="0.4"/><rect x="2" y="6" width="11" height="3.5" rx="0.4"/>
+    </g>
+    <!-- 震 S -->
+    <g transform="rotate(180) translate(0 -138)">
+      <rect x="-13" y="-9" width="11" height="3.5" rx="0.4"/><rect x="2" y="-9" width="11" height="3.5" rx="0.4"/>
+      <rect x="-13" y="-1.5" width="11" height="3.5" rx="0.4"/><rect x="2" y="-1.5" width="11" height="3.5" rx="0.4"/>
+      <rect x="-13" y="6" width="26" height="3.5" rx="0.4"/>
+    </g>
+    <!-- 艮 SW -->
+    <g transform="rotate(225) translate(0 -138)">
+      <rect x="-13" y="-9" width="26" height="3.5" rx="0.4"/>
+      <rect x="-13" y="-1.5" width="11" height="3.5" rx="0.4"/><rect x="2" y="-1.5" width="11" height="3.5" rx="0.4"/>
+      <rect x="-13" y="6" width="11" height="3.5" rx="0.4"/><rect x="2" y="6" width="11" height="3.5" rx="0.4"/>
+    </g>
+    <!-- 兑 W -->
+    <g transform="rotate(270) translate(0 -138)">
+      <rect x="-13" y="-9" width="11" height="3.5" rx="0.4"/><rect x="2" y="-9" width="11" height="3.5" rx="0.4"/>
+      <rect x="-13" y="-1.5" width="26" height="3.5" rx="0.4"/>
+      <rect x="-13" y="6" width="26" height="3.5" rx="0.4"/>
+    </g>
+    <!-- 坎 NW -->
+    <g transform="rotate(315) translate(0 -138)">
+      <rect x="-13" y="-9" width="11" height="3.5" rx="0.4"/><rect x="2" y="-9" width="11" height="3.5" rx="0.4"/>
+      <rect x="-13" y="-1.5" width="26" height="3.5" rx="0.4"/>
+      <rect x="-13" y="6" width="11" height="3.5" rx="0.4"/><rect x="2" y="6" width="11" height="3.5" rx="0.4"/>
+    </g>
+  </g>
+  <g fill="#2a100c" fill-opacity="0.7">
+    <circle cx="200" cy="12" r="2.8"/>
+    <circle cx="388" cy="200" r="2.8"/>
+    <circle cx="200" cy="388" r="2.8"/>
+    <circle cx="12" cy="200" r="2.8"/>
+  </g>
+</svg>
