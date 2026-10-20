@@ -44,11 +44,21 @@
     <script>
       (function () {
         var KEY = 'zw-visual-theme';
-        var BG = { temple: '#4a1a14', cosmos: '#05070f', ink: '#f3efe4' };
+        var BG = {
+          temple: '#4a1a14',
+          cosmos: '#05070f',
+          ink: '#f3efe4',
+          plain: '#ffffff',
+          bronze: '#121816',
+        };
         try {
           var raw = localStorage.getItem(KEY);
           var t =
-            raw === 'temple' || raw === 'cosmos' || raw === 'ink'
+            raw === 'temple' ||
+            raw === 'cosmos' ||
+            raw === 'ink' ||
+            raw === 'plain' ||
+            raw === 'bronze'
               ? raw
               : raw === 'nightsky'
                 ? 'cosmos'
@@ -59,26 +69,28 @@
           root.classList.add('theme-' + t);
           if (t === 'ink') {
             root.classList.add('theme-xuanpaper');
-          } else {
+          } else if (t !== 'plain') {
             root.classList.add('dark', 'theme-nightsky');
           }
-          root.style.backgroundColor = BG[t];
+          root.style.backgroundColor = BG[t] || BG.cosmos;
           var meta = document.querySelector('meta[name="theme-color"]');
-          if (meta) meta.setAttribute('content', BG[t]);
-          // 尽早预加载当前主题标题 WebP（不等 Vue 挂载）
-          var base = /\/jingpan(\/|$)/.test(location.pathname) ? '/jingpan/' : '/';
-          var brand =
-            t === 'temple'
-              ? 'assets/decor/temple-brand-gold.webp'
-              : t === 'ink'
-                ? 'assets/decor/ink-brand.webp'
-                : 'assets/decor/cosmos-brand-gold.webp';
-          var link = document.createElement('link');
-          link.rel = 'preload';
-          link.as = 'image';
-          link.type = 'image/webp';
-          link.href = base + brand;
-          document.head.appendChild(link);
+          if (meta) meta.setAttribute('content', BG[t] || BG.cosmos);
+          // 尽早预加载当前主题标题 WebP（不等 Vue 挂载）；清白/青铜无品牌图
+          if (t === 'temple' || t === 'ink' || t === 'cosmos') {
+            var base = /\/jingpan(\/|$)/.test(location.pathname) ? '/jingpan/' : '/';
+            var brand =
+              t === 'temple'
+                ? 'assets/decor/temple-brand-gold.webp'
+                : t === 'ink'
+                  ? 'assets/decor/ink-brand.webp'
+                  : 'assets/decor/cosmos-brand-gold.webp';
+            var link = document.createElement('link');
+            link.rel = 'preload';
+            link.as = 'image';
+            link.type = 'image/webp';
+            link.href = base + brand;
+            document.head.appendChild(link);
+          }
         } catch (e) {
           document.documentElement.classList.add('theme-cosmos', 'dark', 'theme-nightsky');
           document.documentElement.style.backgroundColor = BG.cosmos;
@@ -101,8 +113,8 @@
         }
       }
     </script>
-    <script type="module" crossorigin src="/jingpan/assets/index-CZlpOBir.js"></script>
-    <link rel="stylesheet" crossorigin href="/jingpan/assets/index-YrVB2_81.css">
+    <script type="module" crossorigin src="/jingpan/assets/index-DflQBxY3.js"></script>
+    <link rel="stylesheet" crossorigin href="/jingpan/assets/index-D-pbVpM_.css">
   </head>
   <body>
     <div id="app"></div>
