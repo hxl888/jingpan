@@ -1,1 +1,0 @@
-import{aP as u}from"./index-DsD_lPIO.js";const t=u("yaoguaSession",()=>{let o=!1;function a(){o=!0}function r(){o=!1}function e(){return o}return{markFromYaogua:a,clearFromYaogua:r,isFromYaogua:e}});export{t as u};
