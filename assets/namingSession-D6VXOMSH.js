@@ -1,1 +1,0 @@
-import{aQ as i}from"./index-BvAgcbuM.js";const m=i("namingSession",()=>{let n=!1;function r(){n=!0}function e(){n=!1}function o(){return n}return{markFromNaming:r,clearFromNaming:e,isFromNaming:o}});export{m as u};
