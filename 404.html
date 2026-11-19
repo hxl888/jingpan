@@ -7,6 +7,27 @@
       name="viewport"
       content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
+    <!-- 尽早拦截页面级双指缩放（bundle 加载前）；盘面缩放由后续 JS 放行 -->
+    <script>
+      (function () {
+        var block = function (e) {
+          e.preventDefault();
+        };
+        document.addEventListener('gesturestart', block, { passive: false });
+        document.addEventListener('gesturechange', block, { passive: false });
+        document.addEventListener('gestureend', block, { passive: false });
+        document.addEventListener(
+          'touchmove',
+          function (e) {
+            if (!e.touches || e.touches.length < 2) return;
+            var t = e.target;
+            if (t && t.closest && t.closest('.chart-zoom-viewport')) return;
+            e.preventDefault();
+          },
+          { passive: false, capture: true },
+        );
+      })();
+    </script>
     <title>經盤 · 古籍對照 · 不編吉凶</title>
     <meta
       name="description"
@@ -113,10 +134,10 @@
         }
       }
     </script>
-    <script type="module" crossorigin src="/jingpan/assets/index-qyj_1swm.js"></script>
+    <script type="module" crossorigin src="/jingpan/assets/index-DigZhrio.js"></script>
     <link rel="modulepreload" crossorigin href="/jingpan/assets/iztro-B2_nwEea.js">
     <link rel="modulepreload" crossorigin href="/jingpan/assets/opencc-DkBE_lyn.js">
-    <link rel="stylesheet" crossorigin href="/jingpan/assets/index-BDehpah0.css">
+    <link rel="stylesheet" crossorigin href="/jingpan/assets/index-Btzvufbe.css">
   </head>
   <body>
     <div id="app"></div>
